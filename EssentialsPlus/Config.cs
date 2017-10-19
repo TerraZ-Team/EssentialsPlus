@@ -11,6 +11,7 @@ namespace EssentialsPlus
 		};
 
 		public int BackPositionHistory = 10;
+        public int CommandHistory = 10;
 
 		public string MySqlHost = "";
 		public string MySqlDbName = "";

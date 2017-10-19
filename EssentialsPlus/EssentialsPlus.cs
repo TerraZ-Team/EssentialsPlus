@@ -44,10 +44,7 @@ namespace EssentialsPlus
 			get { return Assembly.GetExecutingAssembly().GetName().Version; }
 		}
 
-		public EssentialsPlus(Main game)
-			: base(game)
-		{
-		}
+		public EssentialsPlus(Main game) : base(game) { Order = 999999; }
 
 		protected override void Dispose(bool disposing)
 		{
@@ -199,12 +196,12 @@ namespace EssentialsPlus
 				TShockAPI.Commands.ChatCommands.Add(c);
 			};
 
-			Add(new Command(Permissions.Find, Commands.Find, "find")
+			Add(new Command(Permissions.Find, Commands.Find, "find", "f")
 			{
 				HelpText = "Finds an item and/or NPC with the specified name."
 			});
 
-			Add(new Command(Permissions.FreezeTime, Commands.FreezeTime, "freezetime")
+			Add(new Command(Permissions.FreezeTime, Commands.FreezeTime, "freezetime", "ft")
 			{
 				HelpText = "Toggles freezing the time."
 			});

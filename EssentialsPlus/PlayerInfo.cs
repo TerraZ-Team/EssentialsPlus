@@ -60,8 +60,8 @@ namespace EssentialsPlus
             if (LastCommands.FirstOrDefault() == command)
             { return; }
             LastCommands.Insert(0, command);
-            if (LastCommands.Count > 10)
-            { LastCommands.RemoveAt(10); }
+            if (LastCommands.Count > EssentialsPlus.Config.CommandHistory)
+            { LastCommands.RemoveAt(EssentialsPlus.Config.CommandHistory); }
         }
 	}
 }
