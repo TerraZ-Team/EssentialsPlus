@@ -14,230 +14,441 @@ using Terraria.ID;
 using Terraria.Localization;
 using TShockAPI;
 using TShockAPI.DB;
+using TShockAPI.Localization;
 
 namespace EssentialsPlus
 {
 	public static class Commands
-	{
-		public static async void Find(CommandArgs e)
-		{
-			var regex = new Regex(@"^\w+ -(?<switch>\w+) (?<search>.+?) ?(?<page>\d*)$");
-			Match match = regex.Match(e.Message);
-			if (!match.Success)
-			{
-				e.Player.SendErrorMessage("Invalid syntax! Proper syntax: {0}find <-switch> <name...> [page]",
-					TShock.Config.CommandSpecifier);
-				e.Player.SendSuccessMessage("Valid {0}find switches:", TShock.Config.CommandSpecifier);
-				e.Player.SendInfoMessage("-command: Finds a command.");
-				e.Player.SendInfoMessage("-item: Finds an item.");
-				e.Player.SendInfoMessage("-npc: Finds an NPC.");
-				e.Player.SendInfoMessage("-tile: Finds a tile.");
-				e.Player.SendInfoMessage("-wall: Finds a wall.");
-				return;
-			}
+    {
+        private static void FindHelp(TSPlayer plr)
+        {
+            plr.SendErrorMessage("Invalid syntax! Proper syntax: {0}find <switch> <name...> [page]",
+                TShock.Config.CommandSpecifier);
+            plr.SendSuccessMessage("Valid {0}find switches:", TShock.Config.CommandSpecifier);
 
-			int page = 1;
-			if (!String.IsNullOrWhiteSpace(match.Groups["page"].Value) &&
-				(!int.TryParse(match.Groups["page"].Value, out page) || page <= 0))
-			{
-				e.Player.SendErrorMessage("Invalid page '{0}'!", match.Groups["page"].Value);
-				return;
-			}
+            if (plr.RealPlayer)
+            {
+                plr.SendInfoMessage
+                (
+                    "[c/00FF00:-command], [c/00FF00:-c],  [c/00FF00:c]:  Finds a command.\n" +
+                    "[c/00FF00:-item],       [c/00FF00:-i],   [c/00FF00:i]:   Finds an item.\n" +
+                    "[c/00FF00:-npc],       [c/00FF00:-n],   [c/00FF00:n]:  Finds an NPC.\n" +
+                    "[c/00FF00:-tile],        [c/00FF00:-t],   [c/00FF00:t]:   Finds a tile.\n" +
+                    "[c/00FF00:-wall],       [c/00FF00:-w],  [c/00FF00:w]:  Finds a wall.\n" +
+                    "[c/00FF00:-prefix]     [c/00FF00:-p],   [c/00FF00:p]:  Finds a prefix.\n" +
+                    "[c/00FF00:-paint],      [c/00FF00:-pa], [c/00FF00:pa]: Finds a paint.\n" +
+                    "[c/00FF00:-buff],      [c/00FF00:-b],   [c/00FF00:b]:  Finds a buff."
+                );
+            }
+            else
+            {
+                plr.SendInfoMessage
+                (
+                    "-command, -c,  c:  Finds a command.\n" +
+                    "-item,    -i,  i:  Finds an item.\n" +
+                    "-npc,     -n,  n:  Finds an NPC.\n" +
+                    "-tile,    -t,  t:  Finds a tile.\n" +
+                    "-wall,    -w,  w:  Finds a wall.\n" +
+                    "-prefix,  -p,  p:  Finds a prefix.\n" +
+                    "-paint,   -pa, pa: Finds a paint.\n" +
+                    "-buff,    -b,  b:  Finds a buff."
+                );
+            }
+        }
 
-			switch (match.Groups["switch"].Value.ToLowerInvariant())
-			{
-				#region Command
+        private static List<string> AllPaintsList = new List<string> { "Red", "Orange", "Yellow", "Lime", "Green", "Teal", "Cyan", "Sky Blue", "Blue", "Purple", "Violet", "Pink", "Deep Red", "Deep Orange", "Deep Yellow", "Deep Lime", "Deep Green", "Deep Teal", "Deep Cyan", "Deep Sky Blue", "Deep Blue", "Deep Purple", "Deep Violet", "Deep Pink", "Black", "White", "Gray", "Brown", "Shadow", "Negative" };
 
-				case "command":
-					{
-						var commands = new List<string>();
+        public static async void Find(CommandArgs e)
+        {
+            if (e.Parameters.Count < 2)
+            {
+                FindHelp(e.Player);
+                return;
+            }
+            
+            string Search = ((int.TryParse(e.Parameters.Last(), out int Page))
+                                ? string.Join(" ", e.Parameters.Skip(1).Take(e.Parameters.Count - 2))
+                                : string.Join(" ", e.Parameters.Skip(1)));
+            if (Page < 1) { Page = 1; }
 
-						await Task.Run(() =>
-						{
-							foreach (
-								Command command in
-									TShockAPI.Commands.ChatCommands.FindAll(c => c.Names.Any(s => s.ContainsInsensitive(match.Groups[2].Value))))
-							{
-								commands.Add(String.Format("{0} (Permission: {1})", command.Name, command.Permissions.FirstOrDefault()));
-							}
-						});
+            switch (e.Parameters[0].ToLower())
+            {
+                #region Command
 
-						PaginationTools.SendPage(e.Player, page, commands,
-							new PaginationTools.Settings
-							{
-								HeaderFormat = "Found Commands ({0}/{1}):",
-								FooterFormat = String.Format("Type /find -command {0} {{0}} for more", match.Groups[2].Value),
-								NothingToDisplayString = "No commands were found."
-							});
-						return;
-					}
+                case "c":
+                case "-c":
+                case "-command":
+                    {
+                        var commands = new List<string>();
+                        await Task.Run(() =>
+                        {
+                            foreach (Command command in TShockAPI.Commands.ChatCommands
+                                .FindAll(c => c.Names.Any(s => s.ContainsInsensitive(Search))))
+                            {
+                                commands.Add(string.Format
+                                (
+                                    "{0} (Permission: {1})",
+                                    command.Name,
+                                    command.Permissions.FirstOrDefault())
+                                );
+                            }
+                        });
 
-				#endregion
+                        PaginationTools.SendPage(e.Player, Page, commands,
+                            new PaginationTools.Settings
+                            {
+                                HeaderFormat = "Found Commands ({0}/{1}):",
+                                FooterFormat = string.Format
+                                (
+                                    "Type /find {0} {1} {{0}} for more",
+                                    e.Parameters[0], Search
+                                ),
+                                NothingToDisplayString = "No commands were found."
+                            });
+                        return;
+                    }
 
-				#region Item
+                #endregion
 
-				case "item":
-					var items = new List<string>();
+                #region Item
 
-					await Task.Run(() =>
-					{
-						for (int i = -48; i < 0; i++)
-						{
-							var item = new Item();
-							item.netDefaults(i);
-							if (item.HoverName.ContainsInsensitive(match.Groups[2].Value))
-							{
-								items.Add(String.Format("{0} (ID: {1})", item.HoverName, i));
-							}
-						}
-						for (int i = 0; i < ItemID.Count; i++)
-						{
-							if (Lang.GetItemNameValue(i).ContainsInsensitive(match.Groups[2].Value))
-							{
-								items.Add(String.Format("{0} (ID: {1})", Lang.GetItemNameValue(i), i));
-							}
-						}
-					});
+                case "i":
+                case "-i":
+                case "-item":
+                    {
+                        var items = new List<string>();
 
-					PaginationTools.SendPage(e.Player, page, items,
-						new PaginationTools.Settings
-						{
-							HeaderFormat = "Found Items ({0}/{1}):",
-							FooterFormat = String.Format("Type /find -item {0} {{0}} for more", match.Groups[2].Value),
-							NothingToDisplayString = "No items were found."
-						});
-					return;
+                        await Task.Run(() =>
+                        {
+                            for (int i = -48; i < 0; i++)
+                            {
+                                var item = new Item();
+                                item.netDefaults(i);
+                                if (item.HoverName.ContainsInsensitive(Search))
+                                {
+                                    items.Add(string.Format
+                                    (
+                                        "{0} (ID: {1})",
+                                        item.HoverName, i
+                                    ));
+                                }
+                            }
+                            for (int i = 0; i < ItemID.Count; i++)
+                            {
+                                if (Lang.GetItemNameValue(i).ContainsInsensitive(Search))
+                                {
+                                    items.Add(string.Format
+                                    (
+                                        "{0} (ID: {1})",
+                                        Lang.GetItemNameValue(i), i
+                                    ));
+                                }
+                            }
+                        });
 
-				#endregion
+                        PaginationTools.SendPage(e.Player, Page, items,
+                            new PaginationTools.Settings
+                            {
+                                HeaderFormat = "Found Items ({0}/{1}):",
+                                FooterFormat = string.Format
+                                (
+                                    "Type /find {0} {1} {{0}} for more",
+                                    e.Parameters[0], Search
+                                ),
+                                NothingToDisplayString = "No items were found."
+                            });
+                        return;
+                    }
 
-				#region NPC
+                #endregion
 
-				case "npc":
-					var npcs = new List<string>();
+                #region NPC
 
-					await Task.Run(() =>
-					{
-						for (int i = -65; i < 0; i++)
-						{
-							var npc = new NPC();
-							npc.SetDefaults(i);
-							if (npc.FullName.ContainsInsensitive(match.Groups[2].Value))
-							{
-								npcs.Add(String.Format("{0} (ID: {1})", npc.FullName, i));
-							}
-						}
-						for (int i = 0; i < NPCID.Count; i++)
-						{
-							if (Lang.GetNPCNameValue(i).ContainsInsensitive(match.Groups[2].Value))
-							{
-								npcs.Add(String.Format("{0} (ID: {1})", Lang.GetNPCNameValue(i), i));
-							}
-						}
-					});
+                case "n":
+                case "-n":
+                case "-npc":
+                    {
+                        var npcs = new List<string>();
 
-					PaginationTools.SendPage(e.Player, page, npcs,
-						new PaginationTools.Settings
-						{
-							HeaderFormat = "Found NPCs ({0}/{1}):",
-							FooterFormat = String.Format("Type /find -npc {0} {{0}} for more", match.Groups[2].Value),
-							NothingToDisplayString = "No NPCs were found.",
-						});
-					return;
+                        await Task.Run(() =>
+                        {
+                            for (int i = -65; i < 0; i++)
+                            {
+                                var npc = new NPC();
+                                npc.SetDefaults(i);
+                                if (npc.FullName.ContainsInsensitive(Search))
+                                {
+                                    npcs.Add(string.Format
+                                    (
+                                        "{0} (ID: {1})",
+                                        npc.FullName, i
+                                    ));
+                                }
+                            }
+                            for (int i = 0; i < NPCID.Count; i++)
+                            {
+                                if (Lang.GetNPCNameValue(i).ContainsInsensitive(Search))
+                                {
+                                    npcs.Add(string.Format
+                                    (
+                                        "{0} (ID: {1})",
+                                        Lang.GetNPCNameValue(i), i
+                                    ));
+                                }
+                            }
+                        });
 
-				#endregion
+                        PaginationTools.SendPage(e.Player, Page, npcs,
+                            new PaginationTools.Settings
+                            {
+                                HeaderFormat = "Found NPCs ({0}/{1}):",
+                                FooterFormat = string.Format
+                                (
+                                    "Type /find {0} {1} {{0}} for more",
+                                    e.Parameters[0], Search
+                                ),
+                                NothingToDisplayString = "No NPCs were found.",
+                            });
+                        return;
+                    }
 
-				#region Tile
+                #endregion
 
-				case "tile":
-					var tiles = new List<string>();
+                #region Tile
 
-					await Task.Run(() =>
-					{
-						foreach (FieldInfo fi in typeof(TileID).GetFields())
-						{
-							var sb = new StringBuilder();
-							for (int i = 0; i < fi.Name.Length; i++)
-							{
-								if (Char.IsUpper(fi.Name[i]) && i > 0)
-								{
-									sb.Append(" ").Append(fi.Name[i]);
-								}
-								else
-								{
-									sb.Append(fi.Name[i]);
-								}
-							}
+                case "t":
+                case "-t":
+                case "-tile":
+                    {
+                        var tiles = new List<string>();
 
-							string name = sb.ToString();
-							if (name.ContainsInsensitive(match.Groups[2].Value))
-							{
-								tiles.Add(String.Format("{0} (ID: {1})", name, fi.GetValue(null)));
-							}
-						}
-					});
+                        await Task.Run(() =>
+                        {
+                            foreach (FieldInfo fi in typeof(TileID).GetFields())
+                            {
+                                var sb = new StringBuilder();
+                                for (int i = 0; i < fi.Name.Length; i++)
+                                {
+                                    if (Char.IsUpper(fi.Name[i]) && i > 0)
+                                    { sb.Append(" ").Append(fi.Name[i]); }
+                                    else { sb.Append(fi.Name[i]); }
+                                }
 
-					PaginationTools.SendPage(e.Player, page, tiles,
-						new PaginationTools.Settings
-						{
-							HeaderFormat = "Found Tiles ({0}/{1}):",
-							FooterFormat = String.Format("Type /find -tile {0} {{0}} for more", match.Groups[2].Value),
-							NothingToDisplayString = "No tiles were found.",
-						});
-					return;
+                                string name = sb.ToString();
+                                if (name.ContainsInsensitive(Search))
+                                {
+                                    tiles.Add(string.Format
+                                    (
+                                        "{0} (ID: {1})",
+                                        name, fi.GetValue(null)
+                                    ));
+                                }
+                            }
+                        });
 
-				#endregion
+                        PaginationTools.SendPage(e.Player, Page, tiles,
+                            new PaginationTools.Settings
+                            {
+                                HeaderFormat = "Found Tiles ({0}/{1}):",
+                                FooterFormat = string.Format
+                                (
+                                    "Type /find {0} {1} {{0}} for more",
+                                    e.Parameters[0], Search
+                                ),
+                                NothingToDisplayString = "No tiles were found.",
+                            });
+                        return;
+                    }
 
-				#region Wall
+                #endregion
 
-				case "wall":
-					var walls = new List<string>();
+                #region Wall
 
-					await Task.Run(() =>
-					{
-						foreach (FieldInfo fi in typeof(WallID).GetFields())
-						{
-							var sb = new StringBuilder();
-							for (int i = 0; i < fi.Name.Length; i++)
-							{
-								if (Char.IsUpper(fi.Name[i]) && i > 0)
-								{
-									sb.Append(" ").Append(fi.Name[i]);
-								}
-								else
-								{
-									sb.Append(fi.Name[i]);
-								}
-							}
+                case "w":
+                case "-w":
+                case "-wall":
+                    {
+                        var walls = new List<string>();
 
-							string name = sb.ToString();
-							if (name.ContainsInsensitive(match.Groups[2].Value))
-							{
-								walls.Add(String.Format("{0} (ID: {1})", name, fi.GetValue(null)));
-							}
-						}
-					});
+                        await Task.Run(() =>
+                        {
+                            foreach (FieldInfo fi in typeof(WallID).GetFields())
+                            {
+                                var sb = new StringBuilder();
+                                for (int i = 0; i < fi.Name.Length; i++)
+                                {
+                                    if (Char.IsUpper(fi.Name[i]) && i > 0)
+                                    { sb.Append(" ").Append(fi.Name[i]); }
+                                    else { sb.Append(fi.Name[i]); }
+                                }
 
-					PaginationTools.SendPage(e.Player, page, walls,
-						new PaginationTools.Settings
-						{
-							HeaderFormat = "Found Walls ({0}/{1}):",
-							FooterFormat = String.Format("Type /find -wall {0} {{0}} for more", match.Groups[2].Value),
-							NothingToDisplayString = "No walls were found.",
-						});
-					return;
+                                string name = sb.ToString();
+                                if (name.ContainsInsensitive(Search))
+                                {
+                                    walls.Add(string.Format
+                                    (
+                                        "{0} (ID: {1})",
+                                        name, fi.GetValue(null)
+                                    ));
+                                }
+                            }
+                        });
 
-				#endregion
+                        PaginationTools.SendPage(e.Player, Page, walls,
+                            new PaginationTools.Settings
+                            {
+                                HeaderFormat = "Found Walls ({0}/{1}):",
+                                FooterFormat = string.Format
+                                (
+                                    "Type /find {0} {1} {{0}} for more",
+                                    e.Parameters[0], Search
+                                ),
+                                NothingToDisplayString = "No walls were found.",
+                            });
+                        return;
+                    }
 
-				default:
-					e.Player.SendSuccessMessage("Valid {0}find switches:", TShock.Config.CommandSpecifier);
-					e.Player.SendInfoMessage("-command: Finds a command.");
-					e.Player.SendInfoMessage("-item: Finds an item.");
-					e.Player.SendInfoMessage("-npc: Finds an NPC.");
-					e.Player.SendInfoMessage("-tile: Finds a tile.");
-					e.Player.SendInfoMessage("-wall: Finds a wall.");
-					return;
-			}
-		}
+                #endregion
+
+                #region Prefix
+
+                case "p":
+                case "-p":
+                case "-prefix":
+                    {
+                        var prefixes = new List<string>();
+
+                        await Task.Run(() =>
+                        {
+                            foreach (FieldInfo fi in typeof(PrefixID).GetFields())
+                            {
+                                var sb = new StringBuilder();
+                                for (int i = 0; i < fi.Name.Length; i++)
+                                {
+                                    if (Char.IsUpper(fi.Name[i]) && i > 0)
+                                    { sb.Append(" ").Append(fi.Name[i]); }
+                                    else { sb.Append(fi.Name[i]); }
+                                }
+
+                                string name = sb.ToString();
+                                if (name.ContainsInsensitive(Search))
+                                {
+                                    prefixes.Add(string.Format
+                                    (
+                                        "{0} (ID: {1})",
+                                        name, fi.GetValue(null)
+                                    ));
+                                }
+                            }
+                        });
+
+                        PaginationTools.SendPage(e.Player, Page, prefixes,
+                            new PaginationTools.Settings
+                            {
+                                HeaderFormat = "Found Prefixes ({0}/{1}):",
+                                FooterFormat = string.Format
+                                (
+                                    "Type /find {0} {1} {{0}} for more",
+                                    e.Parameters[0], Search
+                                ),
+                                NothingToDisplayString = "No prefixes were found.",
+                            });
+                        return;
+                    }
+
+                #endregion
+
+                #region Paint
+
+                case "pa":
+                case "-pa":
+                case "-paint":
+                    {
+                        var paints = new List<string>();
+
+                        await Task.Run(() =>
+                        {
+                            for (int i = 0; i < AllPaintsList.Count; i++)
+                            {
+                                string paint = AllPaintsList[i];
+                                if (paint.ContainsInsensitive(Search))
+                                {
+                                    paints.Add(string.Format
+                                    (
+                                        "{0} (ID: {1})",
+                                        paint, (i + 1)
+                                    ));
+                                }
+                            }
+                        });
+
+                        PaginationTools.SendPage(e.Player, Page, paints,
+                            new PaginationTools.Settings
+                            {
+                                HeaderFormat = "Found Paint ({0}/{1}):",
+                                FooterFormat = string.Format
+                                (
+                                    "Type /find {0} {1} {{0}} for more",
+                                    e.Parameters[0], Search
+                                ),
+                                NothingToDisplayString = "No paints were found.",
+                            });
+                        return;
+                    }
+
+                #endregion
+
+                #region Buff
+
+                case "b":
+                case "-b":
+                case "-buff":
+                    {
+                        var buffs = new List<string>();
+
+                        await Task.Run(() =>
+                        {
+                            foreach (FieldInfo fi in typeof(BuffID).GetFields())
+                            {
+                                var sb = new StringBuilder();
+                                for (int i = 0; i < fi.Name.Length; i++)
+                                {
+                                    if (Char.IsUpper(fi.Name[i]) && i > 0)
+                                    { sb.Append(" ").Append(fi.Name[i]); }
+                                    else { sb.Append(fi.Name[i]); }
+                                }
+
+                                string name = sb.ToString();
+                                if (name.ContainsInsensitive(Search))
+                                {
+                                    buffs.Add(string.Format
+                                    (
+                                        "{0} (ID: {1})",
+                                        name, fi.GetValue(null)
+                                    ));
+                                }
+                            }
+                        });
+
+                        PaginationTools.SendPage(e.Player, Page, buffs,
+                            new PaginationTools.Settings
+                            {
+                                HeaderFormat = "Found Buffs ({0}/{1}):",
+                                FooterFormat = string.Format
+                                (
+                                    "Type /find {0} {1} {{0}} for more",
+                                    e.Parameters[0], Search
+                                ),
+                                NothingToDisplayString = "No buffs were found.",
+                            });
+                        return;
+                    }
+
+                #endregion
+
+                default: { FindHelp(e.Player); return; }
+            }
+        }
 
 		private static System.Timers.Timer FreezeTimer = new System.Timers.Timer(1000);
 
@@ -389,20 +600,58 @@ namespace EssentialsPlus
 				p.Disconnect("Kicked: " + reason);
 			})));
 			e.Player.SendSuccessMessage("Kicked everyone for '{0}'.", reason);
-		}
+        }
 
-		public static async void RepeatLast(CommandArgs e)
-		{
-			string lastCommand = e.Player.GetPlayerInfo().LastCommand;
-			if (String.IsNullOrWhiteSpace(lastCommand))
-			{
-				e.Player.SendErrorMessage("You don't have a last command!");
-				return;
-			}
+        public static async void RepeatLast(CommandArgs e)
+        {
+            string arg0 = e.Parameters.FirstOrDefault() ?? "1";
+            List<string> lastCommands = e.Player.GetPlayerInfo().LastCommands;
+            if (lastCommands.Count == 0)
+            {
+                e.Player.SendErrorMessage("You don't have last commands!");
+                return;
+            }
 
-			e.Player.SendSuccessMessage("Repeated last command '{0}{1}'!", TShock.Config.CommandSpecifier, lastCommand);
-			await Task.Run(() => TShockAPI.Commands.HandleCommand(e.Player, TShock.Config.CommandSpecifier + lastCommand));
-		}
+            if ((arg0.ToLower() == "list") || (arg0.ToLower() == "l"))
+            {
+                List<string> formated = new List<string>();
+                for (int i = 1; i <= lastCommands.Count; i++)
+                {
+                    if (e.Player.RealPlayer)
+                    {
+                        formated.Insert(0, string.Format
+                        (
+                            "[c/808080:({0})] {1}{2}",
+                            i, TShock.Config.CommandSpecifier,
+                            lastCommands[i - 1]
+                        ));
+                    }
+                    else
+                    {
+                        formated.Insert(0, string.Format
+                        (
+                            "[{0}] {1}{2}",
+                            i, TShock.Config.CommandSpecifier,
+                            lastCommands[i - 1]
+                        ));
+                    }
+                }
+                e.Player.SendInfoMessage(string.Join("\n", formated));
+                return;
+            }
+
+            int Index = 1;
+            if ((e.Parameters.Count > 0)
+                && (!int.TryParse(arg0, out Index)
+                    || (Index < 1) || (Index > lastCommands.Count)))
+            {
+                e.Player.SendErrorMessage("Invalid command index!");
+                return;
+            }
+
+            e.Player.SendSuccessMessage("Repeated {0} command '{1}'!", StringExtensions.GetIndex(Index), lastCommands[Index - 1]);
+            await Task.Run(() => TShockAPI.Commands.HandleCommand(e.Player, e.Message[0] + lastCommands[Index - 1]));
+        }
 
 		public static async void Mute(CommandArgs e)
 		{
@@ -573,8 +822,8 @@ namespace EssentialsPlus
 
 				Point p1 = e.Player.TempPoints[0];
 				Point p2 = e.Player.TempPoints[1];
-				int x = Math.Abs(p1.X - p2.X);
-				int y = Math.Abs(p1.Y - p2.Y);
+				int x = Math.Abs(p1.X - p2.X) + 1;
+				int y = Math.Abs(p1.Y - p2.Y) + 1;
 				double cartesian = Math.Sqrt(x * x + y * y);
 				e.Player.SendInfoMessage("Distances: X: {0}, Y: {1}, Cartesian: {2:N3}", x, y, cartesian);
 			}
@@ -619,75 +868,74 @@ namespace EssentialsPlus
 			TSPlayer.All.SendMessage(match.Groups[4].Value, new Color(r, g, b));
 		}
 
-		public static async void Sudo(CommandArgs e)
+		public static void Sudo(CommandArgs e)
 		{
-			var regex = new Regex(String.Format(@"^\w+(?: -(\w+))* (?:""(.+?)""|([^\s]*?)) (?:{0})?(.+)$", TShock.Config.CommandSpecifier));
-			Match match = regex.Match(e.Message);
-			if (!match.Success)
-			{
-				e.Player.SendErrorMessage("Invalid syntax! Proper syntax: {0}sudo [-switches...] <player> <command...>", TShock.Config.CommandSpecifier);
-				e.Player.SendSuccessMessage("Valid {0}sudo switches:", TShock.Config.CommandSpecifier);
-				e.Player.SendInfoMessage("-f, -force: Force sudo, ignoring permissions.");
-				return;
-			}
+            if (e.Parameters.Count < 2)
+            {
+                e.Player.SendErrorMessage("Invalid syntax! Proper syntax: {0}sudo [-switches...] <player> <command...>", TShock.Config.CommandSpecifier);
+                e.Player.SendSuccessMessage("Valid {0}sudo switches:", TShock.Config.CommandSpecifier);
+                e.Player.SendInfoMessage("-f, -force: Force sudo, ignoring permissions.");
+                return;
+            }
 
-			bool force = false;
-			foreach (Capture capture in match.Groups[1].Captures)
-			{
-				switch (capture.Value.ToLowerInvariant())
-				{
-					case "f":
-					case "force":
-						if (!e.Player.Group.HasPermission(Permissions.SudoForce))
-						{
-							e.Player.SendErrorMessage("You do not have access to the switch '-{0}'!", capture.Value);
-							return;
-						}
-						force = true;
-						continue;
-					default:
-						e.Player.SendSuccessMessage("Valid {0}sudo switches:", TShock.Config.CommandSpecifier);
-						e.Player.SendInfoMessage("-f, -force: Force sudo, ignoring permissions.");
-						return;
-				}
-			}
+            bool force = ((e.Parameters[0].ToLower() == "-f") || (e.Parameters[0].ToLower() == "-force"));
 
-			string playerName = String.IsNullOrWhiteSpace(match.Groups[3].Value) ? match.Groups[2].Value : match.Groups[3].Value;
-			string command = match.Groups[4].Value;
+            if (force && !e.Player.HasPermission(Permissions.SudoForce))
+            {
+                e.Player.SendErrorMessage("You do not have access to the switch '-force'!");
+                return;
+            }
 
-			List<TSPlayer> players = TShock.Utils.FindPlayer(playerName);
-			if (players.Count == 0)
-				e.Player.SendErrorMessage("Invalid player '{0}'!", playerName);
-			else if (players.Count > 1)
-				e.Player.SendErrorMessage("More than one player matched: {0}", String.Join(", ", players.Select(p => p.Name)));
-			else
-			{
-				if ((e.Player.Group.GetDynamicPermission(Permissions.Sudo) <= players[0].Group.GetDynamicPermission(Permissions.Sudo))
-					&& !e.Player.Group.HasPermission(Permissions.SudoSuper))
-				{
-					e.Player.SendErrorMessage("You cannot force {0} to execute {1}{2}!", players[0].Name, TShock.Config.CommandSpecifier, command);
-					return;
-				}
+            string plr = force ? e.Parameters[1] : e.Parameters[0];
+            List<TSPlayer> players = TShock.Utils.FindPlayer(plr);
+            if (players.Count == 0)
+            { e.Player.SendErrorMessage("Invalid player '{0}'!", plr); }
+            else if (players.Count > 1)
+            {
+                e.Player.SendErrorMessage
+                (
+                    "More than one player matched: {0}",
+                    string.Join(", ", players.Select(p => p.Name))
+                );
+            }
+            else
+            {
+                int Length = 6 + (force
+                                    ? (e.Parameters[0].Length + e.Parameters[1].Length + 1)
+                                    : e.Parameters[0].Length);
+                string command = e.Message.Substring(Length);
+                if (!command.StartsWith(TShock.Config.CommandSpecifier)
+                    && !command.StartsWith(TShock.Config.CommandSilentSpecifier))
+                { command = TShock.Config.CommandSpecifier + command; }
 
-				e.Player.SendSuccessMessage("Forced {0} to execute {1}{2}.", players[0].Name, TShock.Config.CommandSpecifier, command);
-				if (!e.Player.Group.HasPermission(Permissions.SudoInvisible))
-					players[0].SendInfoMessage("{0} forced you to execute {1}{2}.", e.Player.Name, TShock.Config.CommandSpecifier, command);
+                if ((e.Player.Group.GetDynamicPermission(Permissions.Sudo)
+                        <= players[0].Group.GetDynamicPermission(Permissions.Sudo))
+                    && !e.Player.Group.HasPermission(Permissions.SudoSuper))
+                {
+                    e.Player.SendErrorMessage
+                    (
+                        "You cannot force {0} to execute {1}!",
+                        players[0].Name, command
+                    );
+                    return;
+                }
 
-				var fakePlayer = new TSPlayer(players[0].Index)
-				{
-					AwaitingName = players[0].AwaitingName,
-					AwaitingNameParameters = players[0].AwaitingNameParameters,
-					AwaitingTempPoint = players[0].AwaitingTempPoint,
-					Group = force ? new SuperAdminGroup() : players[0].Group,
-					TempPoints = players[0].TempPoints
-				};
-				await Task.Run(() => TShockAPI.Commands.HandleCommand(fakePlayer, TShock.Config.CommandSpecifier + command));
+                e.Player.SendSuccessMessage
+                (
+                    "Forced {0} to execute {1}.",
+                    players[0].Name, command
+                );
+                if (!e.Player.Group.HasPermission(Permissions.SudoInvisible))
+                {
+                    players[0].SendInfoMessage
+                    (
+                        "{0} forced you to execute {1}.",
+                        e.Player.Name, command
+                    );
+                }
 
-				players[0].AwaitingName = fakePlayer.AwaitingName;
-				players[0].AwaitingNameParameters = fakePlayer.AwaitingNameParameters;
-				players[0].AwaitingTempPoint = fakePlayer.AwaitingTempPoint;
-				players[0].TempPoints = fakePlayer.TempPoints;
-			}
+                players[0].ExecuteCommand(command, true);
+            }
 		}
 
 		public static async void TimeCmd(CommandArgs e)

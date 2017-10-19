@@ -19,5 +19,16 @@ namespace EssentialsPlus.Extensions
 			}
 			return str.IndexOf(findText, StringComparison.OrdinalIgnoreCase) >= 0;
 		}
+
+        public static string GetIndex(int Index)
+        {
+            switch (Index)
+            {
+                case 1: return "1st";
+                case 2: return "2nd";
+                case 3: return "3rd";
+                default: return (Index + "th");
+            }
+        }
 	}
 }

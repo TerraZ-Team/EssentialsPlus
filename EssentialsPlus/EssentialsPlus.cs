@@ -89,8 +89,8 @@ namespace EssentialsPlus
 
 		private List<string> teleportCommands = new List<string>
 		{
-			"tp", "tppos", "tpnpc", "warp", "spawn", "home"
-		};
+			"tp", "tppos", "tpnpc", "warp", "spawn", "home", "myhome"
+        };
 
 		private void OnPlayerCommand(PlayerCommandEventArgs e)
 		{
@@ -117,7 +117,7 @@ namespace EssentialsPlus
 
 			if (e.Player.Group.HasPermission(Permissions.LastCommand) && command.CommandDelegate != Commands.RepeatLast)
 			{
-				e.Player.GetPlayerInfo().LastCommand = e.CommandText;
+				e.Player.GetPlayerInfo().PushCommand(e.CommandText);
 			}
 
 			if (teleportCommands.Contains(e.CommandName) && e.Player.Group.HasPermission(Permissions.TpBack))

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
 using Microsoft.Xna.Framework;
+using System.Linq;
 
 namespace EssentialsPlus
 {
@@ -9,8 +10,9 @@ namespace EssentialsPlus
 		private List<Vector2> backHistory = new List<Vector2>();
 		private CancellationTokenSource mute = new CancellationTokenSource();
 		private CancellationTokenSource timeCmd = new CancellationTokenSource();
+        public List<string> LastCommands = new List<string>();
 
-		public const string KEY = "EssentialsPlus_Data";
+        public const string KEY = "EssentialsPlus_Data";
 
 		public int BackHistoryCount
 		{
@@ -24,7 +26,6 @@ namespace EssentialsPlus
 		{
 			get { return timeCmd.Token; }
 		}
-		public string LastCommand { get; set; }
 
 		~PlayerInfo()
 		{
@@ -54,5 +55,13 @@ namespace EssentialsPlus
 				backHistory.RemoveAt(backHistory.Count - 1);
 			}
 		}
+        public void PushCommand(string command)
+        {
+            if (LastCommands.FirstOrDefault() == command)
+            { return; }
+            LastCommands.Insert(0, command);
+            if (LastCommands.Count > 10)
+            { LastCommands.RemoveAt(10); }
+        }
 	}
 }
