@@ -934,7 +934,7 @@ namespace EssentialsPlus
                     );
                 }
 
-                players[0].ExecuteCommand(command, true);
+                players[0].ExecuteCommand(command, force);
             }
 		}
 
