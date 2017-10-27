@@ -866,79 +866,75 @@ namespace EssentialsPlus
 				return;
 			}
 			TSPlayer.All.SendMessage(match.Groups[4].Value, new Color(r, g, b));
-		}
+        }
 
-		public static void Sudo(CommandArgs e)
-		{
-            if (e.Parameters.Count < 2)
+        public static void Sudo(CommandArgs e)
+        {
+            var regex = new Regex(string.Format(@"^\w+(?: -(\w+))* (?:""(.+?)""|([^\s]*?)) (.+)$"));
+            Match match = regex.Match(e.Message);
+            if (!match.Success)
             {
-                e.Player.SendErrorMessage("Invalid syntax! Proper syntax: {0}sudo [-switches...] <player> <command...>", TShock.Config.CommandSpecifier);
-                e.Player.SendSuccessMessage("Valid {0}sudo switches:", TShock.Config.CommandSpecifier);
+                e.Player.SendErrorMessage("Invalid syntax! Proper syntax: /sudo [-force] <player> <command...>");
                 e.Player.SendInfoMessage("-f, -force: Force sudo, ignoring permissions.");
                 return;
             }
 
-            bool force = ((e.Parameters[0].ToLower() == "-f") || (e.Parameters[0].ToLower() == "-force"));
-
-            if (force && !e.Player.HasPermission(Permissions.SudoForce))
+            bool force = false;
+            foreach (Capture capture in match.Groups[1].Captures)
             {
-                e.Player.SendErrorMessage("You do not have access to the switch '-force'!");
-                return;
+                switch (capture.Value.ToLowerInvariant())
+                {
+                    case "f":
+                    case "force":
+                        if (!e.Player.Group.HasPermission(Permissions.SudoForce))
+                        {
+                            e.Player.SendErrorMessage("You do not have access to the switch '-{0}'!", capture.Value);
+                            return;
+                        }
+                        force = true;
+                        continue;
+                    default:
+                        e.Player.SendSuccessMessage("Valid {0}sudo switches:", TShock.Config.CommandSpecifier);
+                        e.Player.SendInfoMessage("-f, -force: Force sudo, ignoring permissions.");
+                        return;
+                }
             }
 
-            string plr = force ? e.Parameters[1] : e.Parameters[0];
-            List<TSPlayer> players = TShock.Utils.FindPlayer(plr);
+            string playerName = string.IsNullOrWhiteSpace(match.Groups[3].Value)
+                                    ? match.Groups[2].Value
+                                    : match.Groups[3].Value;
+            string command = match.Groups[4].Value;
+            if (!command.StartsWith(TShock.Config.CommandSpecifier)
+                && !command.StartsWith(TShock.Config.CommandSilentSpecifier))
+            { command = TShock.Config.CommandSpecifier + command; }
+
+            List<TSPlayer> players = TShock.Utils.FindPlayer(playerName);
             if (players.Count == 0)
-            { e.Player.SendErrorMessage("Invalid player '{0}'!", plr); }
+            { e.Player.SendErrorMessage("Invalid player '{0}'!", playerName); }
             else if (players.Count > 1)
             {
-                e.Player.SendErrorMessage
-                (
-                    "More than one player matched: {0}",
-                    string.Join(", ", players.Select(p => p.Name))
-                );
+                e.Player.SendErrorMessage("More than one player matched: {0}",
+                    string.Join(", ", players.Select(p => p.Name)));
             }
             else
             {
-                int Length = 6 + (force
-                                    ? (e.Parameters[0].Length + e.Parameters[1].Length + 1)
-                                    : e.Parameters[0].Length);
-                string command = e.Message.Substring(Length);
-                if (!command.StartsWith(TShock.Config.CommandSpecifier)
-                    && !command.StartsWith(TShock.Config.CommandSilentSpecifier))
-                { command = TShock.Config.CommandSpecifier + command; }
-
                 if ((e.Player.Group.GetDynamicPermission(Permissions.Sudo)
-                        <= players[0].Group.GetDynamicPermission(Permissions.Sudo))
+                    <= players[0].Group.GetDynamicPermission(Permissions.Sudo))
                     && !e.Player.Group.HasPermission(Permissions.SudoSuper))
                 {
-                    e.Player.SendErrorMessage
-                    (
-                        "You cannot force {0} to execute {1}!",
-                        players[0].Name, command
-                    );
+                    e.Player.SendErrorMessage("You cannot force {0} to execute {1}!",
+                        players[0].Name, command);
                     return;
                 }
 
-                e.Player.SendSuccessMessage
-                (
-                    "Forced {0} to execute {1}.",
-                    players[0].Name, command
-                );
+                e.Player.SendSuccessMessage("Forced {0} to execute {1}.", players[0].Name, command);
                 if (!e.Player.Group.HasPermission(Permissions.SudoInvisible))
-                {
-                    players[0].SendInfoMessage
-                    (
-                        "{0} forced you to execute {1}.",
-                        e.Player.Name, command
-                    );
-                }
-
+                { players[0].SendInfoMessage("{0} forced you to execute {1}.", e.Player.Name, command); }
                 players[0].ExecuteCommand(command, force);
             }
-		}
+        }
 
-		public static async void TimeCmd(CommandArgs e)
+        public static async void TimeCmd(CommandArgs e)
 		{
 			var regex = new Regex(String.Format(@"^\w+(?: -(\w+))* (\w+) (?:{0})?(.+)$", TShock.Config.CommandSpecifier));
 			Match match = regex.Match(e.Message);
