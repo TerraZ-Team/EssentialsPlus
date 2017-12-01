@@ -927,6 +927,25 @@ namespace EssentialsPlus
                     return;
                 }
 
+                string cmd = command.Split(' ')[0].Substring(1).ToLower();
+                if (string.IsNullOrWhiteSpace(cmd))
+                {
+                    e.Player.SendErrorMessage("Invalid command.");
+                    return;
+                }
+
+                List<Command> cmds = TShockAPI.Commands.ChatCommands.Where(c => c.Names.Contains(cmd)).ToList();
+                if (cmds.Count == 0)
+                {
+                    e.Player.SendErrorMessage("Invalid command.");
+                    return;
+                }
+                else if (cmds.Any(c => c.Permissions.Any(p => !e.Player.HasPermission(p))))
+                {
+                    e.Player.SendErrorMessage("You do not have permission to use this command.");
+                    return;
+                }
+
                 e.Player.SendSuccessMessage("Forced {0} to execute {1}.", players[0].Name, command);
                 if (!e.Player.Group.HasPermission(Permissions.SudoInvisible))
                 { players[0].SendInfoMessage("{0} forced you to execute {1}.", e.Player.Name, command); }

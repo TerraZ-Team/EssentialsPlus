@@ -56,12 +56,12 @@ namespace EssentialsPlus
 			}
 		}
         public void PushCommand(string command)
-        {
+        { try {
             if (LastCommands.FirstOrDefault() == command)
             { return; }
             LastCommands.Insert(0, command);
             if (LastCommands.Count > EssentialsPlus.Config.CommandHistory)
-            { LastCommands.RemoveAt(EssentialsPlus.Config.CommandHistory); }
-        }
+            { LastCommands.RemoveAt(LastCommands.Count - 1); }
+        } catch { } }
 	}
 }
