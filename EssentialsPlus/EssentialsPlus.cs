@@ -344,9 +344,7 @@ namespace EssentialsPlus
 
 			switch (e.MsgID)
 			{
-				#region Packet 45 - PlayerKillMe
-
-				case PacketTypes.PlayerKillMe:
+				case PacketTypes.PlayerDeathV2:
 					if (tsplayer.Group.HasPermission(Permissions.TpBack))
 					{
 						tsplayer.GetPlayerInfo().PushBackHistory(tsplayer.TPlayer.position);
@@ -379,8 +377,6 @@ namespace EssentialsPlus
 						}
 					}
 					return;
-
-					#endregion
 			}
 		}
 	}

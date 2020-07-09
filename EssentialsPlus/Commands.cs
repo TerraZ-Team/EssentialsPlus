@@ -682,15 +682,15 @@ namespace EssentialsPlus
 						string playerName = String.IsNullOrWhiteSpace(match.Groups[2].Value)
 							? match.Groups[1].Value
 							: match.Groups[2].Value;
-						List<TSPlayer> players = TShock.Utils.FindPlayer(playerName);
+						List<TSPlayer> players = TSPlayer.FindByNameOrID(playerName);
 						if (players.Count == 0)
 						{
-							User user = TShock.Users.GetUserByName(playerName);
+							UserAccount user = TShock.UserAccounts.GetUserAccountByName(playerName);
 							if (user == null)
 								e.Player.SendErrorMessage("Invalid player or account '{0}'!", playerName);
 							else
 							{
-								if (TShock.Utils.GetGroup(user.Group).GetDynamicPermission(Permissions.Mute) >=
+								if (TShock.Groups.GetGroupByName(user.Group).GetDynamicPermission(Permissions.Mute) >=
 									e.Player.Group.GetDynamicPermission(Permissions.Mute))
 								{
 									e.Player.SendErrorMessage("You can't mute {0}!", user.Name);
@@ -759,10 +759,10 @@ namespace EssentialsPlus
 						string playerName = String.IsNullOrWhiteSpace(match.Groups[2].Value)
 							? match.Groups[1].Value
 							: match.Groups[2].Value;
-						List<TSPlayer> players = TShock.Utils.FindPlayer(playerName);
+						List<TSPlayer> players = TSPlayer.FindByNameOrID(playerName);
 						if (players.Count == 0)
 						{
-							User user = TShock.Users.GetUserByName(playerName);
+							UserAccount user = TShock.UserAccounts.GetUserAccountByName(playerName);
 							if (user == null)
 								e.Player.SendErrorMessage("Invalid player or account '{0}'!", playerName);
 							else
@@ -908,7 +908,7 @@ namespace EssentialsPlus
                 && !command.StartsWith(TShock.Config.CommandSilentSpecifier))
             { command = TShock.Config.CommandSpecifier + command; }
 
-            List<TSPlayer> players = TShock.Utils.FindPlayer(playerName);
+            List<TSPlayer> players = TSPlayer.FindByNameOrID(playerName);
             if (players.Count == 0)
             { e.Player.SendErrorMessage("Invalid player '{0}'!", playerName); }
             else if (players.Count > 1)
