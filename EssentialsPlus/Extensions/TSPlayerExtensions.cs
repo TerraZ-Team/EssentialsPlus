@@ -27,7 +27,7 @@ namespace EssentialsPlus.Extensions
         {
             string cmdText = text.Remove(0, 1);
             string cmdPrefix = text[0].ToString();
-            bool silent = (cmdPrefix == TShock.Config.CommandSilentSpecifier);
+            bool silent = (cmdPrefix == TShock.Config.Settings.CommandSilentSpecifier);
 
             MethodInfo methodInfo = typeof(TShockAPI.Commands).GetMethod
             (
@@ -57,7 +57,7 @@ namespace EssentialsPlus.Extensions
                 player.SendErrorMessage
                 (
                     "Invalid command entered. Type {0}help for a list of valid commands.",
-                    TShock.Config.CommandSpecifier
+                    TShock.Config.Settings.CommandSpecifier
                 );
                 return true;
             }
@@ -77,8 +77,8 @@ namespace EssentialsPlus.Extensions
                                 "{0} executed: {1}{2}.",
                                 player.Name,
                                 (silent
-                                    ? TShock.Config.CommandSilentSpecifier
-                                    : TShock.Config.CommandSpecifier),
+                                    ? TShock.Config.Settings.CommandSilentSpecifier
+                                    : TShock.Config.Settings.CommandSpecifier),
                                 cmdText
                             ),
                             Color.PaleVioletRed,
@@ -104,7 +104,7 @@ namespace EssentialsPlus.Extensions
                         (
                             "{0} tried to execute {1}{2}.",
                             player.Name,
-                            TShock.Config.CommandSpecifier,
+                            TShock.Config.Settings.CommandSpecifier,
                             cmdText
                         ),
                         Color.PaleVioletRed,
