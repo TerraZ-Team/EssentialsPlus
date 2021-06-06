@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using TShockAPI;
 using TShockAPI.Hooks;
+using Terraria;
 
 namespace EssentialsPlus.Extensions
 {
