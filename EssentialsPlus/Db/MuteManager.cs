@@ -7,161 +7,128 @@ using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 using TShockAPI;
 using TShockAPI.DB;
+using Auxiliary;
+using System.Linq;
+using MongoDB.Driver;
 
 namespace EssentialsPlus.Db
 {
+	public class Mute : BsonModel
+	{
+		string _violator = String.Empty;
+		public string Violator
+		{
+			get => _violator;
+			set { _ = this.SaveAsync(x => x.Violator, value); _violator = value; }
+		}
+
+		string _uuid = String.Empty;
+		public string UUID
+		{
+			get => _uuid;
+			set { _ = this.SaveAsync(x => x.UUID, value); _uuid = value; }
+		}
+
+		string _ip = String.Empty;
+		public string IP
+		{
+			get => _ip;
+			set { _ = this.SaveAsync(x => x.IP, value); _ip = value; }
+		}
+
+		string _reason = String.Empty;
+		public string Reason
+		{
+			get => _reason;
+			set { _ = this.SaveAsync(x => x.Reason, value); _reason = value; }
+		}
+
+		string _author = String.Empty;
+		public string Author
+		{
+			get => _author;
+			set { _ = this.SaveAsync(x => x.Author, value); _author = value; }
+		}
+
+		DateTime _date = DateTime.MinValue;
+		public DateTime Date
+		{
+			get => _date;
+			set { _ = this.SaveAsync(x => x.Date, value); _date = value; }
+		}
+
+		DateTime _expiration = DateTime.MinValue;
+		public DateTime Expiration
+		{
+			get => _expiration;
+			set { _ = this.SaveAsync(x => x.Expiration, value); _expiration = value; }
+		}
+	}
+
 	public class MuteManager
 	{
-		private IDbConnection db;
-		private ReaderWriterLockSlim syncLock = new ReaderWriterLockSlim();
+		public async Task<Mute> AddAsync(TSPlayer player, string reason, DateTime expiration, string? author = null)
+        {
+			UserAccount account = player.Account ?? new UserAccount() { 
+				KnownIps = JsonConvert.SerializeObject(new List<string> { player.IP }, Formatting.Indented), UUID = player.UUID };
+			return await AddAsync(account, reason, expiration, author);
+		}
+		public async Task<Mute> AddAsync(UserAccount account, string reason, DateTime expiration, string? author = null)
+        {
+			if (account == null || string.IsNullOrEmpty(account.KnownIps) || string.IsNullOrEmpty(account.UUID))
+				throw new NullReferenceException("account");
+			return await IModel.CreateAsync(CreateRequest.Bson<Mute>(x =>
+			{
+				x.Violator = account.Name ?? "";
 
-		public MuteManager(IDbConnection db)
-		{
-			this.db = db;
+				x.IP = JsonConvert.DeserializeObject<List<string>>(account.KnownIps).Last();
+				x.UUID = account.UUID;
 
-			var sqlCreator = new SqlTableCreator(db, db.GetSqlType() == SqlType.Sqlite
-				? (IQueryBuilder)new SqliteQueryCreator() 
-				: new MysqlQueryCreator());
+				x.Reason = reason;
 
-			sqlCreator.EnsureTableStructure(new SqlTable("Mutes",
-				new SqlColumn("ID", MySqlDbType.Int32) { AutoIncrement = true, Primary = true },
-				new SqlColumn("Name", MySqlDbType.Text),
-				new SqlColumn("UUID", MySqlDbType.Text),
-				new SqlColumn("IP", MySqlDbType.Text),
-				new SqlColumn("Date", MySqlDbType.Text),
-				new SqlColumn("Expiration", MySqlDbType.Text)));
+				x.Author = author ?? "";
+
+				x.Date = DateTime.UtcNow;
+				x.Expiration = expiration;
+			}));
 		}
 
-		public async Task<bool> AddAsync(TSPlayer player, DateTime expiration)
+		public async Task<List<Mute>> GetUserMuteAsync(TSPlayer player)
 		{
-			return await Task.Run(() =>
-			{
-				syncLock.EnterWriteLock();
-
-				try
-				{
-					return db.Query("INSERT INTO Mutes VALUES (@0, @1, @2, @3, @4, @5)",
-						null,
-						player.Name,
-						player.UUID,
-						player.IP,
-						DateTime.UtcNow.ToString("s"),
-						expiration.ToString("s")) > 0;
-				}
-				catch (Exception ex)
-				{
-					TShock.Log.Error(ex.ToString());
-					return false;
-				}
-				finally
-				{
-					syncLock.ExitWriteLock();
-				}
-			});
+			string plyName = player.IsLoggedIn ? player.Account.Name : player.Name;
+			await IModel.GetAsync(GetRequest.Bson<Mute>(x =>
+				x.Violator == plyName || x.IP == player.IP || x.UUID == player.UUID));
+			List<Mute> mutes = StorageProvider.GetMongoCollection<Mute>("Mutes").Find(x => 
+				x.Violator == plyName && x.IP == player.IP || x.UUID == player.UUID).Limit(2).ToList();
+			return mutes;
 		}
-		public async Task<bool> AddAsync(UserAccount user, DateTime expiration)
+		public async Task<List<Mute>> GetUserMuteAsync(UserAccount account)
 		{
-			return await Task.Run(() =>
-			{
-				syncLock.EnterWriteLock();
-
-				try
-				{
-					return db.Query("INSERT INTO Mutes VALUES (@0, @1, @2, @3, @4, @5)",
-						null,
-						user.Name,
-						user.UUID,
-						JsonConvert.DeserializeObject<List<string>>(user.KnownIps)[0],
-						DateTime.UtcNow.ToString("s"),
-						expiration.ToString("s")) > 0;
-				}
-				catch (Exception ex)
-				{
-					TShock.Log.Error(ex.ToString());
-					return false;
-				}
-				finally
-				{
-					syncLock.ExitWriteLock();
-				}
-			});
+			if (account == null || string.IsNullOrEmpty(account.KnownIps) || string.IsNullOrEmpty(account.UUID))
+				throw new NullReferenceException("account");
+			string ip = JsonConvert.DeserializeObject<List<string>>(account.KnownIps).Last();
+			await IModel.GetAsync(GetRequest.Bson<Mute>(x =>
+				x.Violator == account.Name || x.IP == ip || x.UUID == account.UUID));
+			List<Mute> mutes = StorageProvider.GetMongoCollection<Mute>("Mutes").Find(x =>
+				x.Violator == account.Name || x.IP == ip || x.UUID == account.UUID).Limit(2).ToList();
+			return mutes;
 		}
-		public async Task<bool> DeleteAsync(TSPlayer player)
-		{
-			return await Task.Run(() =>
-			{
-				syncLock.EnterWriteLock();
-				string query = db.GetSqlType() == SqlType.Mysql ?
-					"DELETE FROM Mutes WHERE UUID = @0 OR IP = @1 ORDER BY ID DESC LIMIT 1" :
-					"DELETE FROM Mutes WHERE ID IN (SELECT ID FROM Mutes WHERE UUID = @0 OR IP = @1 ORDER BY ID DESC LIMIT 1)";
 
-				try
-				{
-					return db.Query(query, player.UUID, player.IP) > 0;
-				}
-				catch (Exception ex)
-				{
-					TShock.Log.Error(ex.ToString());
-					return false;
-				}
-				finally
-				{
-					syncLock.ExitWriteLock();
-				}
-			});
+		public async Task<bool> ArchiveUserMuteAsync(TSPlayer player)
+		{
+			var mutes = await GetUserMuteAsync(player);
+			mutes.ForEach(mute => mute.Expiration = DateTime.MinValue);
+			if (mutes.Count > 0)
+				return true;
+			return false;
 		}
-		public async Task<bool> DeleteAsync(UserAccount user)
+		public async Task<bool> ArchiveUserMuteAsync(UserAccount account)
 		{
-			return await Task.Run(() =>
-			{
-				syncLock.EnterWriteLock();
-				string query = db.GetSqlType() == SqlType.Mysql ?
-					"DELETE FROM Mutes WHERE UUID = @0 OR IP = @1 ORDER BY ID DESC LIMIT 1" :
-					"DELETE FROM Mutes WHERE ID IN (SELECT ID FROM Mutes WHERE UUID = @0 OR IP = @1 ORDER BY ID DESC LIMIT 1)";
-
-				try
-				{
-					return db.Query(query, user.UUID, JsonConvert.DeserializeObject<List<string>>(user.KnownIps)[0]) > 0;
-				}
-				catch (Exception ex)
-				{
-					TShock.Log.Error(ex.ToString());
-					return false;
-				}
-				finally
-				{
-					syncLock.ExitWriteLock();
-				}
-			});
-		}
-		public async Task<DateTime> GetExpirationAsync(TSPlayer player)
-		{
-			return await Task.Run(() =>
-			{
-				syncLock.EnterReadLock();
-
-				try
-				{
-					DateTime dateTime = DateTime.MinValue;
-					using (QueryResult result = db.QueryReader("SELECT Expiration FROM Mutes WHERE UUID = @0 OR IP = @1 ORDER BY ID DESC", player.UUID, player.IP))
-					{
-						if (result.Read())
-						{
-							dateTime = DateTime.Parse(result.Get<string>("Expiration"));
-						}
-					}
-					return dateTime;
-				}
-				catch (Exception ex)
-				{
-					TShock.Log.Error(ex.ToString());
-					return DateTime.MinValue;
-				}
-				finally
-				{
-					syncLock.ExitReadLock();
-				}
-			});
+			var mutes = await GetUserMuteAsync(account);
+			mutes.ForEach(mute => mute.Expiration = DateTime.MinValue);
+			if (mutes.Count > 0)
+				return true;
+			return false;
 		}
 	}
 }

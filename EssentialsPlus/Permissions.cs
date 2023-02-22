@@ -11,6 +11,7 @@
 		public static readonly string LastCommand = "essentials.lastcommand";
 		public static readonly string Mute = "essentials.mute";
 		public static readonly string PvP = "essentials.pvp";
+		public static readonly string PvPOthers = PvP + ".other";
 		public static readonly string Ruler = "essentials.ruler";
 		public static readonly string Send = "essentials.send";
 		public static readonly string Sudo = "essentials.sudo";

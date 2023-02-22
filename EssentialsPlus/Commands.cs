@@ -15,6 +15,9 @@ using Terraria.Localization;
 using TShockAPI;
 using TShockAPI.DB;
 using TShockAPI.Localization;
+using Terraria.GameContent.NetModules;
+using Terraria.Net;
+using System.IO;
 
 namespace EssentialsPlus
 {
@@ -444,37 +447,57 @@ namespace EssentialsPlus
                         return;
                     }
 
-                #endregion
+				#endregion
 
-                default: { FindHelp(e.Player); return; }
+				#region Schematic
+
+				case "sc":
+				case "-sc":
+				case "-schematic":
+                    {
+						if (TerrariaApi.Server.ServerApi.Plugins.Count(p => p.Plugin.Name == "WorldEdit") == 0)
+							e.Player.SendErrorMessage("The server does not have the WorldEdit plugin");
+						else
+							FindSchematicAction(e, Search, Page);
+						return;
+                    }
+
+				#endregion
+
+				default: { FindHelp(e.Player); return; }
             }
         }
+		static async void FindSchematicAction(CommandArgs e, string Search, int Page)
+        {
+			List<string> files = new();
+			await Task.Run(() => files =
+				Directory.GetFiles($"schematic-*{e.Parameters[1]}*.dat").Select(path => Path.GetFileName(path)).ToList());
 
-		private static System.Timers.Timer FreezeTimer = new System.Timers.Timer(1000);
+			PaginationTools.SendPage(e.Player, Page, files,
+							new PaginationTools.Settings
+							{
+								HeaderFormat = "Found Schematics ({0}/{1}):",
+								FooterFormat = string.Format
+								(
+									"Type /find {0} {1} {{0}} for more",
+									e.Parameters[0], Search
+								),
+								NothingToDisplayString = "No schematic were found."
+							});
+		}
 
 		public static void FreezeTime(CommandArgs e)
 		{
-			if (FreezeTimer.Enabled)
-			{
-				FreezeTimer.Stop();
-				TSPlayer.All.SendInfoMessage("{0} unfroze the time.", e.Player.Name);
-			}
-			else
-			{
-				bool dayTime = Main.dayTime;
-				double time = Main.time;
+			var freezeTime = Terraria.GameContent.Creative.CreativePowerManager.Instance.GetPower<Terraria.GameContent.Creative.CreativePowers.FreezeTime>();
+			var enabled = freezeTime.Enabled;
 
-				FreezeTimer.Dispose();
-				FreezeTimer = new System.Timers.Timer(1000);
-				FreezeTimer.Elapsed += (o, ee) =>
-				{
-					Main.dayTime = dayTime;
-					Main.time = time;
-					TSPlayer.All.SendData(PacketTypes.TimeSet);
-				};
-				FreezeTimer.Start();
-				TSPlayer.All.SendInfoMessage("{0} froze the time.", e.Player.Name);
-			}
+			freezeTime.SetPowerInfo(!enabled);
+
+			NetPacket packet = NetCreativePowersModule.PreparePacket(freezeTime.PowerId, 1);
+			packet.Writer.Write(freezeTime.Enabled);
+			NetManager.Instance.Broadcast(packet);
+
+			e.Player.SendInfoMessage("{0} {1}froze time.", e.Player.Name, enabled ? "un" : "");
 		}
 
 		public static async void DeleteHome(CommandArgs e)
@@ -662,11 +685,11 @@ namespace EssentialsPlus
 
 				case "add":
 					{
-						var regex = new Regex(@"^\w+ \w+ (?:""(.+?)""|([^\s]+?))(?: (.+))?$");
+						var regex = new Regex(@"^(\w+ \w+ )((?:\w+|""[^""]*""))\s*((?:\w+)?)\s*(.*)$");
 						Match match = regex.Match(e.Message);
 						if (!match.Success)
 						{
-							e.Player.SendErrorMessage("Invalid syntax! Proper syntax: /mute add <name> [time]");
+							e.Player.SendErrorMessage("Invalid syntax! Proper syntax: /mute add <name> [time] [reason]");
 							return;
 						}
 
@@ -679,10 +702,11 @@ namespace EssentialsPlus
 							return;
 						}
 
-						string playerName = String.IsNullOrWhiteSpace(match.Groups[2].Value)
-							? match.Groups[1].Value
-							: match.Groups[2].Value;
+						string playerName = match.Groups[2].Value.Replace("\"", "");
 						List<TSPlayer> players = TSPlayer.FindByNameOrID(playerName);
+						string reason = match.Groups[4].Value;
+						if (string.IsNullOrWhiteSpace(reason))
+							reason = "Offensive behavior";
 						if (players.Count == 0)
 						{
 							UserAccount user = TShock.UserAccounts.GetUserAccountByName(playerName);
@@ -697,19 +721,24 @@ namespace EssentialsPlus
 									return;
 								}
 
-								if (await EssentialsPlus.Mutes.AddAsync(user, DateTime.UtcNow.AddSeconds(seconds)))
+								Mute mute = null;
+								if ((mute = await EssentialsPlus.Mutes
+									.AddAsync(user, reason, DateTime.UtcNow.AddSeconds(seconds), e.Player.Account?.Name)) != null)
 								{
-									TSPlayer.All.SendInfoMessage("{0} muted {1}.", e.Player.Name, user.Name);
+									string expiration =
+										mute.Expiration.ToString((DateTime.UtcNow.Day == mute.Expiration.Day) ? "HH:MM:ss" : "dd.MM.yyyy");
+									TSPlayer.All.SendInfoMessage("{0} has been muted until {1}({2}) for {3}.",
+										user.Name, expiration, (mute.Expiration - DateTime.UtcNow)
+										.ToString(), mute.Reason);
 								}
 								else
-								{
 									e.Player.SendErrorMessage("Could not mute, check logs for details.");
-								}
 							}
 						}
 						else if (players.Count > 1)
 						{
-							e.Player.SendErrorMessage("More than one player matched: {0}", String.Join(", ", players.Select(p => p.Name)));
+							//e.Player.SendErrorMessage("More than one player matched: {0}", String.Join(", ", players.Select(p => p.Name)));
+							e.Player.SendMultipleMatchError(players.Select(p => p.Name));
 						}
 						else
 						{
@@ -720,20 +749,18 @@ namespace EssentialsPlus
 								return;
 							}
 
-							if (await EssentialsPlus.Mutes.AddAsync(players[0], DateTime.UtcNow.AddSeconds(seconds)))
+							Mute mute = null;
+							if ((mute = await EssentialsPlus.Mutes
+								.AddAsync(players[0], reason, DateTime.UtcNow.AddSeconds(seconds), e.Player.Account?.Name)) != null)
 							{
-								TSPlayer.All.SendInfoMessage("{0} muted {1}.", e.Player.Name, players[0].Name);
+								string expiration = 
+									mute.Expiration.ToString((DateTime.UtcNow.Day == mute.Expiration.Day) ? "HH:MM:ss" : "dd.MM.yyyy");
+								TSPlayer.All.SendInfoMessage("{0} has been muted until {1}({2}) for {3}.",
+									players[0].Name, expiration, (mute.Expiration - DateTime.UtcNow)
+										.ToString(), mute.Reason);
 
 								players[0].mute = true;
-								try
-								{
-									await Task.Delay(TimeSpan.FromSeconds(seconds), players[0].GetPlayerInfo().MuteToken);
-									players[0].mute = false;
-									players[0].SendInfoMessage("You have been unmuted.");
-								}
-								catch (TaskCanceledException)
-								{
-								}
+								players[0].GetPlayerInfo().Mute = mute;
 							}
 							else
 								e.Player.SendErrorMessage("Could not mute, check logs for details.");
@@ -747,6 +774,7 @@ namespace EssentialsPlus
 
 				case "del":
 				case "delete":
+				case "archive":
 					{
 						var regex = new Regex(@"^\w+ \w+ (?:""(.+?)""|([^\s]*?))$");
 						Match match = regex.Match(e.Message);
@@ -767,23 +795,36 @@ namespace EssentialsPlus
 								e.Player.SendErrorMessage("Invalid player or account '{0}'!", playerName);
 							else
 							{
-								if (await EssentialsPlus.Mutes.DeleteAsync(user))
-									TSPlayer.All.SendInfoMessage("{0} unmuted {1}.", e.Player.Name, user.Name);
+								var mutes = await EssentialsPlus.Mutes.GetUserMuteAsync(user);
+								if (mutes.Any(m => m.Expiration > DateTime.UtcNow))
+								{
+									if (await EssentialsPlus.Mutes.ArchiveUserMuteAsync(user))
+										TSPlayer.All.SendInfoMessage("{0} unmuted {1}.", e.Player.Name, user.Name);
+									else
+										e.Player.SendErrorMessage("Could not unmute, check logs for details.");
+								}
 								else
-									e.Player.SendErrorMessage("Could not unmute, check logs for details.");
+									e.Player.SendErrorMessage("User without mute.");
 							}
 						}
 						else if (players.Count > 1)
-							e.Player.SendErrorMessage("More than one player matched: {0}", String.Join(", ", players.Select(p => p.Name)));
+							//e.Player.SendErrorMessage("More than one player matched: {0}", String.Join(", ", players.Select(p => p.Name)));
+							e.Player.SendMultipleMatchError(players.Select(p => p.Name));
 						else
 						{
-							if (await EssentialsPlus.Mutes.DeleteAsync(players[0]))
+							if (players[0].GetPlayerInfo().Mute?.Expiration > DateTime.UtcNow)
 							{
-								players[0].mute = false;
-								TSPlayer.All.SendInfoMessage("{0} unmuted {1}.", e.Player.Name, players[0].Name);
+								if (await EssentialsPlus.Mutes.ArchiveUserMuteAsync(players[0]))
+                                {
+									players[0].mute = false;
+									players[0].GetPlayerInfo().Mute = null;
+									TSPlayer.All.SendInfoMessage("{0} unmuted {1}.", e.Player.Name, players[0].Name);
+								}
+								else
+									e.Player.SendErrorMessage("Could not unmute, check logs for details.");
 							}
 							else
-								e.Player.SendErrorMessage("Could not unmute, check logs for details.");
+								e.Player.SendErrorMessage("Player without mute.");
 						}
 					}
 					return;
@@ -794,7 +835,7 @@ namespace EssentialsPlus
 
 				default:
 					e.Player.SendSuccessMessage("Mute Sub-Commands:");
-					e.Player.SendInfoMessage("add <name> [time] - Mutes a player or account.");
+					e.Player.SendInfoMessage("add <name> [time] [reason] - Mutes a player or account.");
 					e.Player.SendInfoMessage("del <name> - Unmutes a player or account.");
 					return;
 
@@ -804,10 +845,37 @@ namespace EssentialsPlus
 
 		public static void PvP(CommandArgs e)
 		{
-			e.TPlayer.hostile = !e.TPlayer.hostile;
-			string hostile = Language.GetTextValue(e.TPlayer.hostile ? "LegacyMultiplayer.11" : "LegacyMultiplayer.12", e.Player.Name);
-			TSPlayer.All.SendData(PacketTypes.TogglePvp, "", e.Player.Index);
-			TSPlayer.All.SendMessage(hostile, Main.teamColor[e.Player.Team]);
+			TSPlayer player = e.Player;
+			if (e.Parameters.Count > 0)
+            {
+				if (!e.Player.HasPermission(Permissions.PvPOthers))
+                {
+					e.Player.SendErrorMessage("You do not have access to this command argument.");
+					return;
+                }
+				string playerName = string.Join(" ", e.Parameters);
+				/*
+				var regex = new Regex(@"^\w+\s*(.*)$");
+				if (!regex.IsMatch(e.Message))
+                {
+					e.Player.SendErrorMessage($"Invalid syntax. Proper syntax {TShockAPI.Commands.Specifier}pvp <name>");
+					return;
+                }*/
+				var players = TSPlayer.FindByNameOrID(playerName);
+				if (players.Count == 0)
+                {
+					e.Player.SendErrorMessage("Invalid player.");
+					return;
+                }
+				else if (players.Count > 1)
+                {
+					e.Player.SendMultipleMatchError(players.Select(p => p.Name));
+					return;
+                }
+				else
+					player = players.First();
+			}
+			player.SetPvP(!player.TPlayer.hostile, true);
 		}
 
 		public static void Ruler(CommandArgs e)

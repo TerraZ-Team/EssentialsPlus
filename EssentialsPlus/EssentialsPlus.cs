@@ -26,7 +26,7 @@ namespace EssentialsPlus
 
 		public override string Author
 		{
-			get { return "WhiteX et al."; }
+			get { return "WhiteX et al. & AnzhelikaO & Zoom L1"; }
 		}
 
 		public override string Description
@@ -57,6 +57,7 @@ namespace EssentialsPlus
 				ServerApi.Hooks.GamePostInitialize.Deregister(this, OnPostInitialize);
 				ServerApi.Hooks.NetGetData.Deregister(this, OnGetData);
 				ServerApi.Hooks.ServerJoin.Deregister(this, OnJoin);
+				ServerApi.Hooks.ServerChat.Deregister(this, OnChat);
 			}
 			base.Dispose(disposing);
 		}
@@ -70,6 +71,7 @@ namespace EssentialsPlus
 			ServerApi.Hooks.GamePostInitialize.Register(this, OnPostInitialize);
 			ServerApi.Hooks.NetGetData.Register(this, OnGetData);
 			ServerApi.Hooks.ServerJoin.Register(this, OnJoin);
+			ServerApi.Hooks.ServerChat.Register(this, OnChat);
 		}
 
 		private async void OnReload(ReloadEventArgs e)
@@ -87,7 +89,7 @@ namespace EssentialsPlus
 		private List<string> teleportCommands = new List<string>
 		{
 			"tp", "tppos", "tpnpc", "warp", "spawn", "home", "myhome"
-        };
+		};
 
 		private void OnPlayerCommand(PlayerCommandEventArgs e)
 		{
@@ -184,7 +186,7 @@ namespace EssentialsPlus
 				throw new InvalidOperationException("Invalid storage type!");
 			}
 
-			Mutes = new MuteManager(Db);
+			Mutes = new MuteManager();
 
 			#endregion
 
@@ -305,29 +307,50 @@ namespace EssentialsPlus
 		private async void OnJoin(JoinEventArgs e)
 		{
 			if (e.Handled)
-			{
 				return;
-			}
 
 			TSPlayer player = TShock.Players[e.Who];
 			if (player == null)
-			{
 				return;
-			}
 
-			DateTime muteExpiration = await Mutes.GetExpirationAsync(player);
-
-			if (DateTime.UtcNow < muteExpiration)
-			{
-				player.mute = true;
-				try
+			List<Mute> mutes = await Mutes.GetUserMuteAsync(player);
+			if (mutes == null || mutes.Count == 0)
+				return;
+			
+			foreach (Mute mute in mutes)
+            {
+				if (DateTime.UtcNow < mute.Expiration)
 				{
-					await Task.Delay(muteExpiration - DateTime.UtcNow, player.GetPlayerInfo().MuteToken);
-					player.mute = false;
-					player.SendInfoMessage("You have been unmuted.");
+					player.mute = true;
+					player.GetPlayerInfo().Mute = mute;
+					break;
 				}
-				catch (TaskCanceledException)
-				{
+			}
+		}
+		private void OnChat(ServerChatEventArgs args)
+		{
+			if (args.Handled)
+				return;
+			TSPlayer player = TShock.Players[args.Who];
+			if (player != null)
+            {
+				if ((args.Text.StartsWith(TShock.Config.Settings.CommandSpecifier) || args.Text.StartsWith(TShock.Config.Settings.CommandSilentSpecifier)) && !string.IsNullOrWhiteSpace(args.Text.Substring(1)))
+					return;
+
+				var mute = player.GetPlayerInfo().Mute;
+				if (mute != null)
+                {
+					if (mute.Expiration < DateTime.UtcNow)
+                    {
+						player.mute = false;
+						player.SendInfoMessage("You have been unmuted.");
+						player.GetPlayerInfo().Mute = null;
+					}
+					else
+                    {
+						player.SendErrorMessage("You have been muted due to \"" + mute.Reason + "\"");
+						args.Handled = true;
+                    }
 				}
 			}
 		}

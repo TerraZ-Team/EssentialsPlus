@@ -2,6 +2,7 @@
 using System.Threading;
 using Microsoft.Xna.Framework;
 using System.Linq;
+using EssentialsPlus.Db;
 
 namespace EssentialsPlus
 {
@@ -13,6 +14,8 @@ namespace EssentialsPlus
         public List<string> LastCommands = new List<string>();
 
         public const string KEY = "EssentialsPlus_Data";
+
+		public Mute? Mute = null;
 
 		public int BackHistoryCount
 		{
