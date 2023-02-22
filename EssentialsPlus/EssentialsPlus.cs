@@ -24,25 +24,10 @@ namespace EssentialsPlus
 		public static HomeManager Homes { get; private set; }
 		public static MuteManager Mutes { get; private set; }
 
-		public override string Author
-		{
-			get { return "WhiteX et al. & AnzhelikaO & Zoom L1"; }
-		}
-
-		public override string Description
-		{
-			get { return "Essentials, but better"; }
-		}
-
-		public override string Name
-		{
-			get { return "EssentialsPlus"; }
-		}
-
-		public override Version Version
-		{
-			get { return Assembly.GetExecutingAssembly().GetName().Version; }
-		}
+		public override string Author => "WhiteX et al. & AnzhelikaO & Zoom L1";
+		public override string Description => "Essentials, but better";
+		public override string Name => "EssentialsPlus";
+		public override Version Version => new(1, 3, 0);
 
 		public EssentialsPlus(Main game) : base(game) { Order = 999999; }
 
