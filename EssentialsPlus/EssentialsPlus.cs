@@ -333,7 +333,7 @@ namespace EssentialsPlus
 					}
 					else
                     {
-						player.SendErrorMessage("You have been muted due to \"" + mute.Reason + "\"");
+						player.SendErrorMessage($"You have been muted due to \"{mute.Reason}\". Remaining time: {mute.Expiration - DateTime.UtcNow}");
 						args.Handled = true;
                     }
 				}
