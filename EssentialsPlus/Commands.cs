@@ -470,10 +470,10 @@ namespace EssentialsPlus
 		static async void FindSchematicAction(CommandArgs e, string Search, int Page)
         {
 			List<string> files = new();
-			await Task.Run(() => files =
-				Directory.GetFiles($"schematic-*{e.Parameters[1]}*.dat").Select(path => Path.GetFileName(path)).ToList());
+			await Task.Run(() => files = (from s in Directory.EnumerateFiles(WorldEdit.WorldEdit.Config.SchematicFolderPath, string.Format("schematic-{0}.dat", $"*{e.Parameters[1]}*"))
+											select Path.GetFileNameWithoutExtension(s).Substring(10)).ToList());
 
-			PaginationTools.SendPage(e.Player, Page, files,
+			PaginationTools.SendPage(e.Player, Page, PaginationTools.BuildLinesFromTerms(files),
 							new PaginationTools.Settings
 							{
 								HeaderFormat = "Found Schematics ({0}/{1}):",
