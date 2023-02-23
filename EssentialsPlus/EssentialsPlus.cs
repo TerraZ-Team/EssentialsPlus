@@ -13,13 +13,14 @@ using Terraria;
 using TerrariaApi.Server;
 using TShockAPI;
 using TShockAPI.Hooks;
+using TShockAPI.Configuration;
 
 namespace EssentialsPlus
 {
 	[ApiVersion(2, 1)]
 	public class EssentialsPlus : TerrariaPlugin
 	{
-		public static Config Config { get; private set; }
+		public static ConfigFile<Settings> Config { get; private set; }
 		public static IDbConnection Db { get; private set; }
 		public static HomeManager Homes { get; private set; }
 		public static MuteManager Mutes { get; private set; }
@@ -27,7 +28,7 @@ namespace EssentialsPlus
 		public override string Author => "WhiteX et al. & AnzhelikaO & Zoom L1";
 		public override string Description => "Essentials, but better";
 		public override string Name => "EssentialsPlus";
-		public override Version Version => new(1, 3, 0, 2);
+		public override Version Version => new(1, 4);
 
 		public EssentialsPlus(Main game) : base(game) { Order = 999999; }
 
@@ -46,7 +47,6 @@ namespace EssentialsPlus
 			}
 			base.Dispose(disposing);
 		}
-
 		public override void Initialize()
 		{
 			GeneralHooks.ReloadEvent += OnReload;
@@ -62,11 +62,11 @@ namespace EssentialsPlus
 		private async void OnReload(ReloadEventArgs e)
 		{
 			string path = Path.Combine(TShock.SavePath, "essentials.json");
-			Config = Config.Read(path);
-			if (!File.Exists(path))
-			{
+			Config = new();
+			Config.Read(path, out bool write);
+			if (write)
 				Config.Write(path);
-			}
+
 			await Homes.ReloadAsync();
 			e.Player.SendSuccessMessage("[EssentialsPlus] Reloaded config and homes!");
 		}
@@ -91,7 +91,7 @@ namespace EssentialsPlus
 
 			if (e.Player.TPlayer.hostile &&
 				command.Names.Select(s => s.ToLowerInvariant())
-					.Intersect(Config.DisabledCommandsInPvp.Select(s => s.ToLowerInvariant()))
+					.Intersect(Config.Settings.DisabledCommandsInPvp.Select(s => s.ToLowerInvariant()))
 					.Any())
 			{
 				e.Player.SendErrorMessage("This command is blocked while in PvP!");
@@ -115,60 +115,38 @@ namespace EssentialsPlus
 			#region Config
 
 			string path = Path.Combine(TShock.SavePath, "essentials.json");
-			Config = Config.Read(path);
-			if (!File.Exists(path))
-			{
+			Config = new();
+			Config.Read(path, out bool write);
+			if (write)
 				Config.Write(path);
-			}
 
 			#endregion
 
 			#region Database
 
-			if (TShock.Config.Settings.StorageType.Equals("mysql", StringComparison.OrdinalIgnoreCase))
-			{
-				if (string.IsNullOrWhiteSpace(Config.MySqlHost) ||
-					string.IsNullOrWhiteSpace(Config.MySqlDbName))
-				{
-					Console.ForegroundColor = ConsoleColor.Red;
-					Console.WriteLine("[Essentials+] MySQL is enabled, but the Essentials+ MySQL Configuration has not been set.");
-					Console.WriteLine("[Essentials+] Please configure your MySQL server information in essentials.json, then restart the server.");
-					Console.WriteLine("[Essentials+] This plugin will now disable itself...");
-					Console.ResetColor();
+			switch (TShock.Config.Settings.StorageType)
+            {
+				case "mysql":
+					string[] host = TShock.Config.Settings.MySqlHost.Split(':');
+					Db = new MySqlConnection
+					{
+						ConnectionString = String.Format("Server={0}; Port={1}; Database={2}; Uid={3}; Pwd={4};",
+							host[0],
+							host.Length == 1 ? "3306" : host[1],
+							TShock.Config.Settings.MySqlDbName,
+							TShock.Config.Settings.MySqlUsername,
+							TShock.Config.Settings.MySqlPassword)
+					};
+					break;
+				case "sqlite":
+					Db = new SqliteConnection(
+						new SqliteConnectionStringBuilder()
+						{
+							DataSource = Path.Combine(TShock.SavePath, "essentials.sqlite")
+						}.ToString()
+					);
+					break;
 
-					GeneralHooks.ReloadEvent -= OnReload;
-					PlayerHooks.PlayerCommand -= OnPlayerCommand;
-
-					ServerApi.Hooks.GameInitialize.Deregister(this, OnInitialize);
-					ServerApi.Hooks.GamePostInitialize.Deregister(this, OnPostInitialize);
-					ServerApi.Hooks.NetGetData.Deregister(this, OnGetData);
-					ServerApi.Hooks.ServerJoin.Deregister(this, OnJoin);
-
-					return;
-				}
-
-				string[] host = Config.MySqlHost.Split(':');
-				Db = new MySqlConnection
-				{
-					ConnectionString = String.Format("Server={0}; Port={1}; Database={2}; Uid={3}; Pwd={4};",
-						host[0],
-						host.Length == 1 ? "3306" : host[1],
-						Config.MySqlDbName,
-						Config.MySqlUsername,
-						Config.MySqlPassword)
-				};
-			}
-			else if (TShock.Config.Settings.StorageType.Equals("sqlite", StringComparison.OrdinalIgnoreCase))
-			{
-				Db = new SqliteConnection(
-					new SqliteConnectionStringBuilder() {
-						DataSource = Path.Combine(TShock.SavePath, "essentials.sqlite")
-					}.ToString()
-				);
-			}
-			else
-			{
-				throw new InvalidOperationException("Invalid storage type!");
 			}
 
 			Mutes = new MuteManager();
@@ -222,13 +200,19 @@ namespace EssentialsPlus
 				HelpText = "Allows you to repeat your last command."
 			});
 
+			Add(new Command(Permissions.More, Commands.More, "more")
+			{
+				AllowServer = false,
+				HelpText = "Maximizes item stack of held item."
+			});
+
 			//This will override TShock's 'mute' command
 			Add(new Command(Permissions.Mute, Commands.Mute, "mute")
 			{
 				HelpText = "Manages mutes."
 			});
 
-			Add(new Command(Permissions.PvP, Commands.PvP, "pvp")
+			Add(new Command(Permissions.PvP, Commands.PvP, "pvp", "togglepvp", "togpvp")
 			{
 				AllowServer = false,
 				HelpText = "Toggles your PvP status."

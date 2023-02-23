@@ -9,7 +9,6 @@ namespace EssentialsPlus
 	public class PlayerInfo
 	{
 		private List<Vector2> backHistory = new List<Vector2>();
-		private CancellationTokenSource mute = new CancellationTokenSource();
 		private CancellationTokenSource timeCmd = new CancellationTokenSource();
         public List<string> LastCommands = new List<string>();
 
@@ -21,10 +20,6 @@ namespace EssentialsPlus
 		{
 			get { return backHistory.Count; }
 		}
-		public CancellationToken MuteToken
-		{
-			get { return mute.Token; }
-		}
 		public CancellationToken TimeCmdToken
 		{
 			get { return timeCmd.Token; }
@@ -32,8 +27,6 @@ namespace EssentialsPlus
 
 		~PlayerInfo()
 		{
-			mute.Cancel();
-			mute.Dispose();
 			timeCmd.Cancel();
 			timeCmd.Dispose();
 		}
@@ -53,7 +46,7 @@ namespace EssentialsPlus
 		public void PushBackHistory(Vector2 vector)
 		{
 			backHistory.Insert(0, vector);
-			if (backHistory.Count > EssentialsPlus.Config.BackPositionHistory)
+			if (backHistory.Count > EssentialsPlus.Config.Settings.BackPositionHistory)
 			{
 				backHistory.RemoveAt(backHistory.Count - 1);
 			}
@@ -63,7 +56,7 @@ namespace EssentialsPlus
             if (LastCommands.FirstOrDefault() == command)
             { return; }
             LastCommands.Insert(0, command);
-            if (LastCommands.Count > EssentialsPlus.Config.CommandHistory)
+            if (LastCommands.Count > EssentialsPlus.Config.Settings.CommandHistory)
             { LastCommands.RemoveAt(LastCommands.Count - 1); }
         } catch { } }
 	}
