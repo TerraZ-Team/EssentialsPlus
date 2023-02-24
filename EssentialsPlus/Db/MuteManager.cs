@@ -81,7 +81,7 @@ namespace EssentialsPlus.Db
 			{
 				x.Violator = account.Name ?? "";
 
-				x.IP = JsonConvert.DeserializeObject<List<string>>(account.KnownIps).Last();
+				x.IP = (JsonConvert.DeserializeObject<List<string>>(account.KnownIps) ?? new List<string>()).LastOrDefault();
 				x.UUID = account.UUID;
 
 				x.Reason = reason;
@@ -106,7 +106,7 @@ namespace EssentialsPlus.Db
 		{
 			if (account == null || string.IsNullOrEmpty(account.KnownIps) || string.IsNullOrEmpty(account.UUID))
 				throw new NullReferenceException("account");
-			string ip = JsonConvert.DeserializeObject<List<string>>(account.KnownIps).Last();
+			string ip = (JsonConvert.DeserializeObject<List<string>>(account.KnownIps) ?? new List<string>()).LastOrDefault();
 			await IModel.GetAsync(GetRequest.Bson<Mute>(x =>
 				x.Violator == account.Name || x.IP == ip || x.UUID == account.UUID));
 			List<Mute> mutes = StorageProvider.GetMongoCollection<Mute>("Mutes").Find(x =>
