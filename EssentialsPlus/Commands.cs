@@ -23,7 +23,162 @@ namespace EssentialsPlus
 {
 	public static class Commands
     {
-        private static void FindHelp(TSPlayer plr)
+		public static void BanTools(CommandArgs args)
+		{
+			if (args.Parameters.Count == 0)
+			{
+				args.Player.SendErrorMessage("Invalid syntax. Try /bt <info/(add/create)> [args]");
+				return;
+			}
+			string cmd = args.Parameters[0];
+			switch (cmd)
+			{
+				default:
+					args.Player.SendErrorMessage("Invalid syntax. Try /bt <info/(add/create)> [args]");
+					return;
+
+				case "add":
+				case "create":
+					{
+						if (args.Parameters.Count < 3)
+						{
+							args.Player.SendErrorMessage("Invalid syntax. Gigachad syntax: /bt add <userName> <time> [reason]");
+							return;
+						}
+						string userName = args.Parameters[1];
+
+						string reason = "no reason";
+						if (args.Parameters.Count >= 4)
+							reason = string.Join(" ", args.Parameters.Skip(3));
+
+						UserAccount account = null;
+						var plrs = TSPlayer.FindByNameOrID(userName);
+						if (plrs.Count == 0)
+						{
+							account = TShock.UserAccounts.GetUserAccountByName(userName);
+							if (account == null)
+							{
+								args.Player.SendErrorMessage("Invalid user.");
+								return;
+							}
+						}
+						if (plrs.Count > 1)
+						{
+							args.Player.SendMultipleMatchError(plrs.Select(p => p.Name));
+							return;
+						}
+						if (plrs.Count == 1)
+						{
+							if (plrs[0].IsLoggedIn)
+								account = plrs[0].Account;
+						}
+
+						var expiration = DateTime.MaxValue;
+						if (TShock.Utils.TryParseTime(args.Parameters[2], out int seconds))
+							expiration = DateTime.UtcNow.AddSeconds((double)seconds);
+
+						string ip = (account == null ? plrs[0].IP : Newtonsoft.Json.JsonConvert.DeserializeObject<List<string>>(account.KnownIps).FirstOrDefault());
+						string uuid = (account == null ? plrs[0].UUID : account.UUID);
+						string accountName = (account == null ? string.Empty : account.Name);
+						// string name = (plrs.Count == 1 ? plrs[0].Name : string.Empty);
+						// Убрано по просьбе Luke_snake (https://discord.com/channels/874653864647872562/874654345583558657/986613882242076692)
+
+						List<AddBanResult> bans = new List<AddBanResult>();
+						var date = DateTime.UtcNow;
+
+						if (!string.IsNullOrEmpty(ip))
+							bans.Add(TShock.Bans.InsertBan(string.Format("{0}{1}", Identifier.IP, ip), reason,
+								args.Player.Account.Name, date, expiration));
+						if (!string.IsNullOrEmpty(uuid))
+							bans.Add(TShock.Bans.InsertBan(string.Format("{0}{1}", Identifier.UUID, uuid), reason,
+								args.Player.Account.Name, date, expiration));
+						if (!string.IsNullOrEmpty(accountName))
+							bans.Add(TShock.Bans.InsertBan(string.Format("{0}{1}", Identifier.Account, account), reason,
+								args.Player.Account.Name, date, expiration));
+
+						bans.RemoveAll(p => p.Message != null);
+
+						if (plrs.Count == 1)
+							plrs[0].Disconnect("Вы были забанены.\nПереподключитесь для большей информации.");
+
+						if (bans.Count == 0)
+							args.Player.SendErrorMessage("WTH ЧЕЛ, почему-то все баны которые ты сделал не смогли 'сделаться'");
+						else
+							args.Player.SendInfoMessage("Игрок {0} был забанен по тикетам {1}",
+								plrs.Count == 1 ? plrs[0].Name : account.Name, string.Join(", ", bans.Select(b => b.Ban.TicketNumber)));
+					}
+					break;
+				case "addip":
+					{
+						if (args.Parameters.Count < 3)
+						{
+							args.Player.SendErrorMessage("Invalid syntax. Gigachad syntax: /bt addip <ip> <time> [reason]");
+							return;
+						}
+
+						string ip = args.Parameters[1];
+						string[] array = ip.Split('.');
+						if (array.Length == 0)
+						{
+							args.Player.SendErrorMessage("Invalid ip value.");
+							return;
+						}
+						if (array.Any(p => !byte.TryParse(p, out byte _)))
+						{
+							args.Player.SendErrorMessage("Invalid ip value.");
+							return;
+						}
+
+						string reason = "no reason";
+						if (args.Parameters.Count >= 4)
+							reason = string.Join(" ", args.Parameters.Skip(3));
+
+						var expiration = DateTime.MaxValue;
+						if (TShock.Utils.TryParseTime(args.Parameters[2], out int seconds))
+							expiration = DateTime.UtcNow.AddSeconds((double)seconds);
+
+						List<AddBanResult> bans = new List<AddBanResult>();
+						var date = DateTime.UtcNow;
+
+						if (!string.IsNullOrEmpty(ip))
+							bans.Add(TShock.Bans.InsertBan(string.Format("{0}{1}", Identifier.IP, ip), reason,
+								args.Player.Account.Name, date, expiration));
+
+						bans.RemoveAll(p => p.Message != null);
+
+						if (bans.Count == 0)
+							args.Player.SendErrorMessage("WTH ЧЕЛ, почему-то все баны которые ты сделал не смогли 'сделаться'");
+						else
+						{
+							args.Player.SendInfoMessage("IP {0} забанен по тикетам {1}",
+								ip, string.Join(", ", bans.Select(p => p.Ban.TicketNumber)));
+
+							TShock.Players.Where(p => p?.IP == ip)
+								.ForEach(p => p.Disconnect("ы были забанены.\nПереподключитесь для большей информации."));
+						}
+
+						break;
+					}
+				case "info":
+					{
+						if (args.Parameters.Count < 2)
+						{
+							args.Player.SendErrorMessage("Invalid syntax. Try gigachad syntax /bt info [plr name]");
+							return;
+						}
+						string name = args.Parameters[1];
+						var ban = TShock.Bans.Bans.FirstOrDefault(p => p.Value.ExpirationDateTime > DateTime.UtcNow && p.Value.Identifier.StartsWith(Identifier.Account.Prefix) ? p.Value.Identifier == Identifier.Account.Prefix + name : false);
+						if (ban.Value == null)
+							args.Player.SendInfoMessage("Invalid ban");
+						else
+							args.Player.SendInfoMessage("Ban ticket: " + ban.Key);
+					}
+
+					break;
+			}
+		}
+
+		private static void FindHelp(TSPlayer plr)
         {
             plr.SendErrorMessage("Invalid syntax! Proper syntax: {0}find <switch> <name...> [page]",
                 TShock.Config.Settings.CommandSpecifier);
@@ -40,8 +195,9 @@ namespace EssentialsPlus
                     "[c/00FF00:-wall],       [c/00FF00:-w],  [c/00FF00:w]:  Finds a wall.\n" +
                     "[c/00FF00:-prefix]     [c/00FF00:-p],   [c/00FF00:p]:  Finds a prefix.\n" +
                     "[c/00FF00:-paint],      [c/00FF00:-pa], [c/00FF00:pa]: Finds a paint.\n" +
-                    "[c/00FF00:-buff],      [c/00FF00:-b],   [c/00FF00:b]:  Finds a buff."
-                );
+                    "[c/00FF00:-buff],      [c/00FF00:-b],   [c/00FF00:b]:  Finds a buff.\n" +
+					"[c/00FF00:-schematic],      [c/00FF00:-s],   [c/00FF00:s]:  Finds a schematic."
+				);
             }
             else
             {
@@ -54,8 +210,9 @@ namespace EssentialsPlus
                     "-wall,    -w,  w:  Finds a wall.\n" +
                     "-prefix,  -p,  p:  Finds a prefix.\n" +
                     "-paint,   -pa, pa: Finds a paint.\n" +
-                    "-buff,    -b,  b:  Finds a buff."
-                );
+                    "-buff,    -b,  b:  Finds a buff.\n"+
+					"-schematic,      -s,   s: Finds a schematic."
+				);
             }
         }
 

@@ -265,6 +265,8 @@ namespace EssentialsPlus
 				HelpText = "Teleports you up through a layer of blocks."
 			});
 
+			Add(new Command(TShockAPI.Permissions.ban, Commands.BanTools, "bantools", "bantool", "bt"));
+
 			#endregion
 		}
 
