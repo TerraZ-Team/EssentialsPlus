@@ -27,14 +27,14 @@ namespace EssentialsPlus
 		{
 			if (args.Parameters.Count == 0)
 			{
-				args.Player.SendErrorMessage("Invalid syntax. Try /bt <info/(add/create)> [args]");
+				args.Player.SendErrorMessage("Invalid syntax. Try /bt <info/(add/create)/addip> [args]");
 				return;
 			}
 			string cmd = args.Parameters[0];
 			switch (cmd)
 			{
 				default:
-					args.Player.SendErrorMessage("Invalid syntax. Try /bt <info/(add/create)> [args]");
+					args.Player.SendErrorMessage("Invalid syntax. Try /bt <info/(add/create)/addip> [args]");
 					return;
 
 				case "add":
@@ -99,12 +99,12 @@ namespace EssentialsPlus
 						bans.RemoveAll(p => p.Message != null);
 
 						if (plrs.Count == 1)
-							plrs[0].Disconnect("Вы были забанены.\nПереподключитесь для большей информации.");
+							plrs[0].Disconnect("You are banned.");
 
 						if (bans.Count == 0)
-							args.Player.SendErrorMessage("WTH ЧЕЛ, почему-то все баны которые ты сделал не смогли 'сделаться'");
+							args.Player.SendErrorMessage("We were unable to determine the reason for cancelling the user's ban.");
 						else
-							args.Player.SendInfoMessage("Игрок {0} был забанен по тикетам {1}",
+							args.Player.SendInfoMessage("Player {0} is banned by ticket's {1}",
 								plrs.Count == 1 ? plrs[0].Name : account.Name, string.Join(", ", bans.Select(b => b.Ban.TicketNumber)));
 					}
 					break;
@@ -147,14 +147,14 @@ namespace EssentialsPlus
 						bans.RemoveAll(p => p.Message != null);
 
 						if (bans.Count == 0)
-							args.Player.SendErrorMessage("WTH ЧЕЛ, почему-то все баны которые ты сделал не смогли 'сделаться'");
+							args.Player.SendErrorMessage("We were unable to determine the reason for cancelling the user's ban.");
 						else
 						{
-							args.Player.SendInfoMessage("IP {0} забанен по тикетам {1}",
+							args.Player.SendInfoMessage("IP ({0}) is banned by ticket's {1}",
 								ip, string.Join(", ", bans.Select(p => p.Ban.TicketNumber)));
 
 							TShock.Players.Where(p => p?.IP == ip)
-								.ForEach(p => p.Disconnect("ы были забанены.\nПереподключитесь для большей информации."));
+								.ForEach(p => p.Disconnect("You are banned by IP."));
 						}
 
 						break;
@@ -913,18 +913,26 @@ namespace EssentialsPlus
 									return;
 								}
 
-								Mute mute = null;
-								if ((mute = await EssentialsPlus.Mutes
-									.AddAsync(user, reason, DateTime.UtcNow.AddSeconds(seconds), e.Player.Account?.Name)) != null)
+								try
 								{
-									string expiration =
-										mute.Expiration.ToString((DateTime.UtcNow.Day == mute.Expiration.Day) ? "HH:MM:ss" : "dd.MM.yyyy");
-									TSPlayer.All.SendInfoMessage("{0} has been muted until {1}({2}) for {3}.",
-										user.Name, expiration, (mute.Expiration - DateTime.UtcNow)
-										.ToString(), mute.Reason);
+									Mute mute = null;
+									if ((mute = await EssentialsPlus.Mutes
+										.AddAsync(user, reason, DateTime.UtcNow.AddSeconds(seconds), e.Player.Account?.Name)) != null)
+									{
+										string expiration =
+											mute.Expiration.ToString((DateTime.UtcNow.Day == mute.Expiration.Day) ? "HH:MM:ss" : "dd.MM.yyyy");
+										TSPlayer.All.SendInfoMessage("{0} has been muted until {1}({2}) for {3}.",
+											user.Name, expiration, (mute.Expiration - DateTime.UtcNow)
+											.ToString(), mute.Reason);
+									}
+									else
+										e.Player.SendErrorMessage("Could not mute.");
 								}
-								else
-									e.Player.SendErrorMessage("Could not mute, check logs for details.");
+								catch (Exception ex)
+                                {
+									e.Player.SendErrorMessage("Could not mute, check logs for details: " + ex.Message);
+									TShock.Log.ConsoleError(ex.ToString());
+								}
 							}
 						}
 						else if (players.Count > 1)
@@ -941,21 +949,29 @@ namespace EssentialsPlus
 								return;
 							}
 
-							Mute mute = null;
-							if ((mute = await EssentialsPlus.Mutes
-								.AddAsync(players[0], reason, DateTime.UtcNow.AddSeconds(seconds), e.Player.Account?.Name)) != null)
-							{
-								string expiration = 
-									mute.Expiration.ToString((DateTime.UtcNow.Day == mute.Expiration.Day) ? "HH:MM:ss" : "dd.MM.yyyy");
-								TSPlayer.All.SendInfoMessage("{0} has been muted until {1}({2}) for {3}.",
-									players[0].Name, expiration, (mute.Expiration - DateTime.UtcNow)
-										.ToString(), mute.Reason);
+							try
+                            {
+								Mute mute = null;
+								if ((mute = await EssentialsPlus.Mutes
+									.AddAsync(players[0], reason, DateTime.UtcNow.AddSeconds(seconds), e.Player.Account?.Name)) != null)
+								{
+									string expiration =
+										mute.Expiration.ToString((DateTime.UtcNow.Day == mute.Expiration.Day) ? "HH:MM:ss" : "dd.MM.yyyy");
+									TSPlayer.All.SendInfoMessage("{0} has been muted until {1}({2}) for {3}.",
+										players[0].Name, expiration, (mute.Expiration - DateTime.UtcNow)
+											.ToString(), mute.Reason);
 
-								players[0].mute = true;
-								players[0].GetPlayerInfo().Mute = mute;
+									players[0].mute = true;
+									players[0].GetPlayerInfo().Mute = mute;
+								}
+								else
+									e.Player.SendErrorMessage("Could not mute.");
 							}
-							else
-								e.Player.SendErrorMessage("Could not mute, check logs for details.");
+							catch (Exception ex)
+							{
+								e.Player.SendErrorMessage("Could not mute, check logs for details: " + ex.Message);
+								TShock.Log.ConsoleError(ex.ToString());
+							}
 						}
 					}
 					return;
@@ -990,13 +1006,21 @@ namespace EssentialsPlus
 								var mutes = await EssentialsPlus.Mutes.GetUserMuteAsync(user);
 								if (mutes.Any(m => m.Expiration > DateTime.UtcNow))
 								{
-									if (await EssentialsPlus.Mutes.ArchiveUserMuteAsync(user))
-										TSPlayer.All.SendInfoMessage("{0} unmuted {1}.", e.Player.Name, user.Name);
-									else
-										e.Player.SendErrorMessage("Could not unmute, check logs for details.");
+									try
+                                    {
+										if (await EssentialsPlus.Mutes.ArchiveUserMuteAsync(user))
+											TSPlayer.All.SendInfoMessage("{0} unmuted {1}.", e.Player.Name, user.Name);
+										else
+											e.Player.SendErrorMessage("Could not unmute.");
+									}
+									catch (Exception ex)
+                                    {
+										e.Player.SendErrorMessage("Could not unmute, check logs for details: " + ex.Message);
+										TShock.Log.ConsoleError(ex.ToString());
+									}
 								}
 								else
-									e.Player.SendErrorMessage("User without mute.");
+									e.Player.SendErrorMessage("The player is not muted.");
 							}
 						}
 						else if (players.Count > 1)
@@ -1006,17 +1030,25 @@ namespace EssentialsPlus
 						{
 							if (players[0].GetPlayerInfo().Mute?.Expiration > DateTime.UtcNow)
 							{
-								if (await EssentialsPlus.Mutes.ArchiveUserMuteAsync(players[0]))
+								try
                                 {
-									players[0].mute = false;
-									players[0].GetPlayerInfo().Mute = null;
-									TSPlayer.All.SendInfoMessage("{0} unmuted {1}.", e.Player.Name, players[0].Name);
+									if (await EssentialsPlus.Mutes.ArchiveUserMuteAsync(players[0]))
+									{
+										players[0].mute = false;
+										players[0].GetPlayerInfo().Mute = null;
+										TSPlayer.All.SendInfoMessage("{0} unmuted {1}.", e.Player.Name, players[0].Name);
+									}
+									else
+										e.Player.SendErrorMessage("Could not unmute.");
 								}
-								else
-									e.Player.SendErrorMessage("Could not unmute, check logs for details.");
+								catch (Exception ex)
+                                {
+									e.Player.SendErrorMessage("Could not unmute, check logs for details: " + ex.Message);
+									TShock.Log.ConsoleError(ex.ToString());
+								}
 							}
 							else
-								e.Player.SendErrorMessage("Player without mute.");
+								e.Player.SendErrorMessage("The player is not muted.");
 						}
 					}
 					return;
