@@ -5,6 +5,8 @@ VisualStudioVersion = 17.2.32616.157
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EssentialsPlus", "EssentialsPlus\EssentialsPlus.csproj", "{F07C5E6C-C0F0-4ABD-8BE1-8A0621BF2BDD}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WorldEdit", "..\WorldEdit\WorldEdit\WorldEdit.csproj", "{322EAA8D-A98B-4032-9CF3-5C9EAE66124E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{F07C5E6C-C0F0-4ABD-8BE1-8A0621BF2BDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F07C5E6C-C0F0-4ABD-8BE1-8A0621BF2BDD}.Release|Any CPU.ActiveCfg = Release|x86
 		{F07C5E6C-C0F0-4ABD-8BE1-8A0621BF2BDD}.Release|Any CPU.Build.0 = Release|x86
+		{322EAA8D-A98B-4032-9CF3-5C9EAE66124E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{322EAA8D-A98B-4032-9CF3-5C9EAE66124E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{322EAA8D-A98B-4032-9CF3-5C9EAE66124E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{322EAA8D-A98B-4032-9CF3-5C9EAE66124E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
