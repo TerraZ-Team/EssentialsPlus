@@ -28,7 +28,7 @@ namespace EssentialsPlus
 		public override string Author => "WhiteX et al. & AnzhelikaO & Zoom L1";
 		public override string Description => "Essentials, but better";
 		public override string Name => "EssentialsPlus";
-		public override Version Version => new(1, 4, 0, 1);
+		public override Version Version => new(1, 4, 0, 2);
 
 		public EssentialsPlus(Main game) : base(game) { Order = 999999; }
 
