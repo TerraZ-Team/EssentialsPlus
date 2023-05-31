@@ -303,17 +303,20 @@ namespace EssentialsPlus
 					return;
 
 				var mutes = player.GetPlayerInfo().Mutes;
-				if (mutes.Any(i => i.expiration > DateTime.UtcNow))
+				if (mutes.Count > 0)
                 {
-					player.SendErrorMessage($"You have been muted due to \"{mutes.Last().reason}\". Remaining time: {mutes.Last().expiration - DateTime.UtcNow}");
-					args.Handled = true;
-				}
-				else
-                {
-					player.mute = false;
-					player.SendInfoMessage("You have been unmuted.");
-					foreach (Mute mute in mutes)
-						Mutes.Remove(mute);
+					if (mutes.Any(i => i.expiration > DateTime.UtcNow))
+					{
+						player.SendErrorMessage($"You have been muted due to \"{mutes.Last().reason}\". Remaining time: {mutes.Last().expiration - DateTime.UtcNow}");
+						args.Handled = true;
+					}
+					else
+					{
+						player.mute = false;
+						player.SendInfoMessage("You have been unmuted.");
+						foreach (Mute mute in mutes)
+							Mutes.Remove(mute);
+					}
 				}
 			}
 		}
