@@ -885,10 +885,10 @@ namespace EssentialsPlus
 							return;
 						}
 
-						int seconds = Int32.MaxValue / 1000;
+						int seconds = Int32.MaxValue / 500;
 						if (!String.IsNullOrWhiteSpace(match.Groups[3].Value) &&
 							(!TShock.Utils.TryParseTime(match.Groups[3].Value, out seconds) || seconds <= 0 ||
-							 seconds > Int32.MaxValue / 1000))
+							 seconds > Int32.MaxValue / 500))
 						{
 							e.Player.SendErrorMessage("Invalid time '{0}'!", match.Groups[3].Value);
 							return;
@@ -899,48 +899,7 @@ namespace EssentialsPlus
 						string reason = match.Groups[4].Value;
 						if (string.IsNullOrWhiteSpace(reason))
 							reason = "Offensive behavior";
-						if (players.Count == 0)
-						{
-							UserAccount user = TShock.UserAccounts.GetUserAccountByName(playerName);
-							if (user == null)
-								e.Player.SendErrorMessage("Invalid player or account '{0}'!", playerName);
-							else
-							{
-								if (TShock.Groups.GetGroupByName(user.Group).GetDynamicPermission(Permissions.Mute) >=
-									e.Player.Group.GetDynamicPermission(Permissions.Mute))
-								{
-									e.Player.SendErrorMessage("You can't mute {0}!", user.Name);
-									return;
-								}
-
-								try
-								{
-									Mute mute = null;
-									if ((mute = await EssentialsPlus.Mutes
-										.AddAsync(user, reason, DateTime.UtcNow.AddSeconds(seconds), e.Player.Account?.Name)) != null)
-									{
-										string expiration =
-											mute.Expiration.ToString((DateTime.UtcNow.Day == mute.Expiration.Day) ? "HH:MM:ss" : "dd.MM.yyyy");
-										TSPlayer.All.SendInfoMessage("{0} has been muted until {1}({2}) for {3}.",
-											user.Name, expiration, (mute.Expiration - DateTime.UtcNow)
-											.ToString(), mute.Reason);
-									}
-									else
-										e.Player.SendErrorMessage("Could not mute.");
-								}
-								catch (Exception ex)
-                                {
-									e.Player.SendErrorMessage("Could not mute, check logs for details: " + ex.Message);
-									TShock.Log.ConsoleError(ex.ToString());
-								}
-							}
-						}
-						else if (players.Count > 1)
-						{
-							//e.Player.SendErrorMessage("More than one player matched: {0}", String.Join(", ", players.Select(p => p.Name)));
-							e.Player.SendMultipleMatchError(players.Select(p => p.Name));
-						}
-						else
+						if (players.Count == 1)
 						{
 							if (players[0].Group.GetDynamicPermission(Permissions.Mute) >=
 								e.Player.Group.GetDynamicPermission(Permissions.Mute))
@@ -950,28 +909,45 @@ namespace EssentialsPlus
 							}
 
 							try
-                            {
-								Mute mute = null;
-								if ((mute = await EssentialsPlus.Mutes
-									.AddAsync(players[0], reason, DateTime.UtcNow.AddSeconds(seconds), e.Player.Account?.Name)) != null)
-								{
-									string expiration =
-										mute.Expiration.ToString((DateTime.UtcNow.Day == mute.Expiration.Day) ? "HH:MM:ss" : "dd.MM.yyyy");
-									TSPlayer.All.SendInfoMessage("{0} has been muted until {1}({2}) for {3}.",
-										players[0].Name, expiration, (mute.Expiration - DateTime.UtcNow)
-											.ToString(), mute.Reason);
-
-									players[0].mute = true;
-									players[0].GetPlayerInfo().Mute = mute;
-								}
-								else
+							{
+								if (!EssentialsPlus.Mutes.Add(players[0], e.Player, reason, DateTime.UtcNow.AddSeconds(seconds), 
+									out Mute mute))
+                                {
 									e.Player.SendErrorMessage("Could not mute.");
+									return;
+                                }
+								TSPlayer.All.SendInfoMessage("{0} has been muted until {1}({2}) for {3}.",
+									players[0].Name, mute.expiration, (mute.expiration - mute.date).ToString(), reason);
+								players[0].GetPlayerInfo().Mutes = EssentialsPlus.Mutes.GetMutes(players[0]).ToList();
+								players[0].mute = true;
 							}
 							catch (Exception ex)
 							{
 								e.Player.SendErrorMessage("Could not mute, check logs for details: " + ex.Message);
 								TShock.Log.ConsoleError(ex.ToString());
 							}
+						}
+						else if (players.Count > 1)
+						{
+							//e.Player.SendErrorMessage("More than one player matched: {0}", String.Join(", ", players.Select(p => p.Name)));
+							e.Player.SendMultipleMatchError(players.Select(p => p.Name));
+						}
+						else
+                        {
+							UserAccount account = TShock.UserAccounts.GetUserAccountByName(playerName);
+							if (account == null)
+                            {
+								e.Player.SendErrorMessage("Invalid account.");
+								return;
+                            }
+							if (!EssentialsPlus.Mutes.Add(account, e.Player, reason, DateTime.UtcNow.AddSeconds(seconds),
+								out Mute mute))
+							{
+								e.Player.SendErrorMessage("Could not mute.");
+								return;
+							}
+							TSPlayer.All.SendInfoMessage("{0} has been muted until {1}({2}) for {3}.",
+								account.Name, mute.expiration, (mute.expiration - mute.date).ToString(), reason);
 						}
 					}
 					return;
@@ -1003,24 +979,19 @@ namespace EssentialsPlus
 								e.Player.SendErrorMessage("Invalid player or account '{0}'!", playerName);
 							else
 							{
-								var mutes = await EssentialsPlus.Mutes.GetUserMuteAsync(user);
-								if (mutes.Any(m => m.Expiration > DateTime.UtcNow))
-								{
-									try
-                                    {
-										if (await EssentialsPlus.Mutes.ArchiveUserMuteAsync(user))
-											TSPlayer.All.SendInfoMessage("{0} unmuted {1}.", e.Player.Name, user.Name);
-										else
-											e.Player.SendErrorMessage("Could not unmute.");
-									}
-									catch (Exception ex)
-                                    {
-										e.Player.SendErrorMessage("Could not unmute, check logs for details: " + ex.Message);
-										TShock.Log.ConsoleError(ex.ToString());
-									}
-								}
-								else
+								var mutes = EssentialsPlus.Mutes.GetMutes(user);
+								if (mutes.Count() == 0)
+                                {
 									e.Player.SendErrorMessage("The player is not muted.");
+									return;
+								}
+								bool success = true;
+								foreach (Mute mute in mutes)
+									success = EssentialsPlus.Mutes.Remove(mute) | success;
+								if (success)
+									TSPlayer.All.SendInfoMessage("{0} unmuted {1}.", e.Player.Name, user.Name);
+								else
+									e.Player.SendErrorMessage("Could not unmute.");
 							}
 						}
 						else if (players.Count > 1)
@@ -1028,27 +999,19 @@ namespace EssentialsPlus
 							e.Player.SendMultipleMatchError(players.Select(p => p.Name));
 						else
 						{
-							if (players[0].GetPlayerInfo().Mute?.Expiration > DateTime.UtcNow)
+							var mutes = players[0].GetPlayerInfo().Mutes;
+							if (mutes.Count() == 0)
 							{
-								try
-                                {
-									if (await EssentialsPlus.Mutes.ArchiveUserMuteAsync(players[0]))
-									{
-										players[0].mute = false;
-										players[0].GetPlayerInfo().Mute = null;
-										TSPlayer.All.SendInfoMessage("{0} unmuted {1}.", e.Player.Name, players[0].Name);
-									}
-									else
-										e.Player.SendErrorMessage("Could not unmute.");
-								}
-								catch (Exception ex)
-                                {
-									e.Player.SendErrorMessage("Could not unmute, check logs for details: " + ex.Message);
-									TShock.Log.ConsoleError(ex.ToString());
-								}
-							}
-							else
 								e.Player.SendErrorMessage("The player is not muted.");
+								return;
+							}
+							bool success = true;
+							foreach (Mute mute in mutes)
+								success = EssentialsPlus.Mutes.Remove(mute) | success;
+							if (success)
+								TSPlayer.All.SendInfoMessage("{0} unmuted {1}.", e.Player.Name, players[0].Name);
+							else
+								e.Player.SendErrorMessage("Could not unmute.");
 						}
 					}
 					return;

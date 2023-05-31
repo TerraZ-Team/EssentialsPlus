@@ -7,128 +7,173 @@ using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 using TShockAPI;
 using TShockAPI.DB;
-using Auxiliary;
 using System.Linq;
-using MongoDB.Driver;
 
 namespace EssentialsPlus.Db
 {
-	public class Mute : BsonModel
-	{
-		string _violator = String.Empty;
-		public string Violator
-		{
-			get => _violator;
-			set { _ = this.SaveAsync(x => x.Violator, value); _violator = value; }
-		}
+	public struct Mute
+    {
+		public Mute(int id)
+        {
+			ID = -1;
 
-		string _uuid = String.Empty;
-		public string UUID
-		{
-			get => _uuid;
-			set { _ = this.SaveAsync(x => x.UUID, value); _uuid = value; }
-		}
+			accountId = null;
+			authorId = null;
 
-		string _ip = String.Empty;
-		public string IP
-		{
-			get => _ip;
-			set { _ = this.SaveAsync(x => x.IP, value); _ip = value; }
-		}
+			ip = null;
+			uuid = null;
 
-		string _reason = String.Empty;
-		public string Reason
-		{
-			get => _reason;
-			set { _ = this.SaveAsync(x => x.Reason, value); _reason = value; }
-		}
+			reason = String.Empty;
 
-		string _author = String.Empty;
-		public string Author
-		{
-			get => _author;
-			set { _ = this.SaveAsync(x => x.Author, value); _author = value; }
-		}
+			date = DateTime.MinValue;
+			expiration = DateTime.MinValue;
+        }
 
-		DateTime _date = DateTime.MinValue;
-		public DateTime Date
-		{
-			get => _date;
-			set { _ = this.SaveAsync(x => x.Date, value); _date = value; }
-		}
+		public int ID;
 
-		DateTime _expiration = DateTime.MinValue;
-		public DateTime Expiration
-		{
-			get => _expiration;
-			set { _ = this.SaveAsync(x => x.Expiration, value); _expiration = value; }
-		}
+		public int? accountId;
+		public int? authorId;
+
+		public string? ip;
+		public string? uuid;
+
+		public string reason;
+
+		public DateTime date;
+		public DateTime expiration;
 	}
 
 	public class MuteManager
 	{
-		public async Task<Mute> AddAsync(TSPlayer player, string reason, DateTime expiration, string? author = null)
-        {
-			UserAccount account = player.Account ?? new UserAccount() { 
-				KnownIps = JsonConvert.SerializeObject(new List<string> { player.IP }, Formatting.Indented), UUID = player.UUID };
-			return await AddAsync(account, reason, expiration, author);
+		private IDbConnection db;
+
+		public MuteManager(IDbConnection db)
+		{
+			this.db = db;
+
+			var sqlCreator = new SqlTableCreator(db, db.GetSqlType() == SqlType.Sqlite
+				? new SqliteQueryCreator()
+				: new MysqlQueryCreator());
+
+			sqlCreator.EnsureTableStructure(new SqlTable("Mutes",
+				new SqlColumn("ID", MySqlDbType.Int32) { AutoIncrement = true, Primary = true },
+
+				new SqlColumn("Account", MySqlDbType.Int32),
+				new SqlColumn("Author", MySqlDbType.Int32),
+
+				new SqlColumn("IP", MySqlDbType.Text),
+				new SqlColumn("UUID", MySqlDbType.Text),
+
+				new SqlColumn("Reason", MySqlDbType.Text),
+
+				new SqlColumn("Date", MySqlDbType.Text),
+				new SqlColumn("Expiration", MySqlDbType.Text)));
 		}
-		public async Task<Mute> AddAsync(UserAccount account, string reason, DateTime expiration, string? author = null)
-        {
-			if (account == null || string.IsNullOrEmpty(account.KnownIps) || string.IsNullOrEmpty(account.UUID))
-				throw new NullReferenceException("account");
-			return await IModel.CreateAsync(CreateRequest.Bson<Mute>(x =>
+
+		public bool Add(TSPlayer player, TSPlayer author, string reason, DateTime expiration, out Mute mute)
+		{
+			mute = new Mute(-1)
 			{
-				x.Violator = account.Name ?? "";
+				accountId = player.Account?.ID,
+				authorId = author.Account.ID,
 
-				x.IP = (JsonConvert.DeserializeObject<List<string>>(account.KnownIps) ?? new List<string>()).LastOrDefault();
-				x.UUID = account.UUID;
+				ip = player.IP,
+				uuid = player.UUID,
 
-				x.Reason = reason;
+				reason = reason,
+				expiration = expiration,
 
-				x.Author = author ?? "";
+				date = DateTime.UtcNow
+			};
 
-				x.Date = DateTime.UtcNow;
-				x.Expiration = expiration;
-			}));
+			return Add(mute);
+		}
+		public bool Add(UserAccount account, TSPlayer author, string reason, DateTime expiration, out Mute mute)
+        {
+			mute = new Mute()
+			{
+				accountId = account.ID,
+				authorId = author.Account.ID,
+
+				ip = JsonConvert.DeserializeObject<List<string>>(account.KnownIps)?.LastOrDefault(),
+				uuid = account.UUID,
+
+				reason = reason,
+				expiration = expiration,
+
+				date = DateTime.UtcNow
+			};
+
+			return Add(mute);
+		}
+		public bool Add(Mute mute)
+        {
+			return db.Query("INSERT INTO Mutes VALUES(@0, @1, @2, @3, @4, @5, @6, @7)", null,
+				mute.accountId, mute.authorId, mute.ip, mute.uuid, mute.reason, mute.date, mute.expiration) > 0;
 		}
 
-		public async Task<List<Mute>> GetUserMuteAsync(TSPlayer player)
-		{
-			string plyName = player.IsLoggedIn ? player.Account.Name : player.Name;
-			await IModel.GetAsync(GetRequest.Bson<Mute>(x =>
-				x.Violator == plyName || x.IP == player.IP || x.UUID == player.UUID));
-			List<Mute> mutes = StorageProvider.GetMongoCollection<Mute>("Mutes").Find(x => 
-				x.Violator == plyName && x.IP == player.IP || x.UUID == player.UUID).Limit(2).ToList();
-			return mutes;
-		}
-		public async Task<List<Mute>> GetUserMuteAsync(UserAccount account)
-		{
-			if (account == null || string.IsNullOrEmpty(account.KnownIps) || string.IsNullOrEmpty(account.UUID))
-				throw new NullReferenceException("account");
-			string ip = (JsonConvert.DeserializeObject<List<string>>(account.KnownIps) ?? new List<string>()).LastOrDefault();
-			await IModel.GetAsync(GetRequest.Bson<Mute>(x =>
-				x.Violator == account.Name || x.IP == ip || x.UUID == account.UUID));
-			List<Mute> mutes = StorageProvider.GetMongoCollection<Mute>("Mutes").Find(x =>
-				x.Violator == account.Name || x.IP == ip || x.UUID == account.UUID).Limit(2).ToList();
-			return mutes;
+		public bool Remove(Mute mute)
+        {
+			if (mute.ID == -1)
+				throw new ArgumentOutOfRangeException(nameof(mute.ID));
+
+			return Remove(mute.ID);
+        }
+		public bool Remove(int id)
+        {
+			return db.Query("DELETE FROM Mutes WHERE ID = @0", id) > 0;
 		}
 
-		public async Task<bool> ArchiveUserMuteAsync(TSPlayer player)
+		public Mute Read(IDataReader reader)
+        {
+			return new Mute()
+			{
+				ID = reader.GetInt32(0),
+
+				accountId = reader.GetInt32(1),
+				authorId = reader.GetInt32(2),
+
+				ip = reader.GetString(3),
+				uuid = reader.GetString(4),
+
+				reason = reader.GetString(5),
+				date = DateTime.Parse(reader.GetString(6)),
+
+				expiration = DateTime.Parse(reader.GetString(7))
+			};
+        }
+		public Mute? GetMute(int id)
 		{
-			var mutes = await GetUserMuteAsync(player);
-			mutes.ForEach(mute => mute.Expiration = DateTime.MinValue);
-			if (mutes.Count > 0)
-				return true;
-			return false;
+			using (QueryResult result = db.QueryReader($"SELECT * FROM Mutes WHERE ID = @0", id))
+            {
+				if (result.Read())
+					return Read(result.Reader);
+            }
+			return null;
 		}
-		public async Task<bool> ArchiveUserMuteAsync(UserAccount account)
-		{
-			var mutes = await GetUserMuteAsync(account);
-			mutes.ForEach(mute => mute.Expiration = DateTime.MinValue);
-			if (mutes.Count > 0)
-				return true;
-			return false;
+
+		public IEnumerable<Mute> GetMutes(TSPlayer player)
+        {
+			using (QueryResult result = db.QueryReader($"SELECT * FROM Mutes WHERE Account = @0 OR IP = @1 OR UUID = @2",
+				player.Account?.ID ?? -1, player.IP, player.UUID))
+			{
+				while (result.Read())
+				{
+					yield return Read(result.Reader);
+				}
+			}
+		}
+		public IEnumerable<Mute> GetMutes(UserAccount account)
+        {
+			using (QueryResult result = db.QueryReader($"SELECT * FROM Mutes WHERE Account = @0 OR IP = @1 OR UUID = @2", 
+				account.ID, JsonConvert.DeserializeObject<List<string>>(account.KnownIps)?.LastOrDefault(),
+				account.UUID))
+            {
+				while (result.Read())
+                {
+					yield return Read(result.Reader);
+                }
+            }
 		}
 	}
 }

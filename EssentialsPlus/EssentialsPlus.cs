@@ -149,7 +149,7 @@ namespace EssentialsPlus
 
 			}
 
-			Mutes = new MuteManager();
+			Mutes = new MuteManager(Db);
 
 			#endregion
 
@@ -275,7 +275,7 @@ namespace EssentialsPlus
 			Homes = new HomeManager(Db);
 		}
 
-		private async void OnJoin(JoinEventArgs e)
+		private void OnJoin(JoinEventArgs e)
 		{
 			if (e.Handled)
 				return;
@@ -284,19 +284,13 @@ namespace EssentialsPlus
 			if (player == null)
 				return;
 
-			List<Mute> mutes = await Mutes.GetUserMuteAsync(player);
-			if (mutes == null || mutes.Count == 0)
+			IEnumerable<Mute> mutes = Mutes.GetMutes(player);
+			if (mutes == null || mutes.Count() == 0)
 				return;
-			
-			foreach (Mute mute in mutes)
-            {
-				if (DateTime.UtcNow < mute.Expiration)
-				{
-					player.mute = true;
-					player.GetPlayerInfo().Mute = mute;
-					break;
-				}
-			}
+
+			player.GetPlayerInfo().Mutes = mutes.ToList();
+			player.SendErrorMessage($"You have been muted due to \"{mutes.Last().reason}\". Remaining time: {mutes.Last().expiration - DateTime.UtcNow}");
+			player.mute = true;
 		}
 		private void OnChat(ServerChatEventArgs args)
 		{
@@ -308,20 +302,18 @@ namespace EssentialsPlus
 				if ((args.Text.StartsWith(TShock.Config.Settings.CommandSpecifier) || args.Text.StartsWith(TShock.Config.Settings.CommandSilentSpecifier)) && !string.IsNullOrWhiteSpace(args.Text.Substring(1)))
 					return;
 
-				var mute = player.GetPlayerInfo().Mute;
-				if (mute != null)
+				var mutes = player.GetPlayerInfo().Mutes;
+				if (mutes.Any(i => i.expiration > DateTime.UtcNow))
                 {
-					if (mute.Expiration < DateTime.UtcNow)
-                    {
-						player.mute = false;
-						player.SendInfoMessage("You have been unmuted.");
-						player.GetPlayerInfo().Mute = null;
-					}
-					else
-                    {
-						player.SendErrorMessage($"You have been muted due to \"{mute.Reason}\". Remaining time: {mute.Expiration - DateTime.UtcNow}");
-						args.Handled = true;
-                    }
+					player.SendErrorMessage($"You have been muted due to \"{mutes.Last().reason}\". Remaining time: {mutes.Last().expiration - DateTime.UtcNow}");
+					args.Handled = true;
+				}
+				else
+                {
+					player.mute = false;
+					player.SendInfoMessage("You have been unmuted.");
+					foreach (Mute mute in mutes)
+						Mutes.Remove(mute);
 				}
 			}
 		}

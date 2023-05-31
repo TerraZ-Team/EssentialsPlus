@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using Microsoft.Xna.Framework;
 using System.Linq;
@@ -14,7 +15,8 @@ namespace EssentialsPlus
 
         public const string KEY = "EssentialsPlus_Data";
 
-		public Mute? Mute = null;
+		public List<Mute> Mutes = new List<Mute>();
+		public bool IsMuted => Mutes.Any(i => i.expiration < DateTime.UtcNow);
 
 		public int BackHistoryCount
 		{
