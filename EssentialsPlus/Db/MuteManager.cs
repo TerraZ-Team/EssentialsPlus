@@ -130,11 +130,11 @@ namespace EssentialsPlus.Db
 			{
 				ID = reader.GetInt32(0),
 
-				accountId = reader.GetInt32(1),
-				authorId = reader.GetInt32(2),
+				accountId = reader.IsDBNull(1) ? null : reader.GetInt32(1),
+				authorId = reader.IsDBNull(2) ? null : reader.GetInt32(2),
 
-				ip = reader.GetString(3),
-				uuid = reader.GetString(4),
+				ip = reader.IsDBNull(3) ? null : reader.GetString(3),
+				uuid = reader.IsDBNull(4) ? null : reader.GetString(4),
 
 				reason = reader.GetString(5),
 				date = DateTime.Parse(reader.GetString(6)),

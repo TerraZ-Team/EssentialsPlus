@@ -316,6 +316,7 @@ namespace EssentialsPlus
 						player.SendInfoMessage("You have been unmuted.");
 						foreach (Mute mute in mutes)
 							Mutes.Remove(mute);
+						mutes.Clear();
 					}
 				}
 			}
