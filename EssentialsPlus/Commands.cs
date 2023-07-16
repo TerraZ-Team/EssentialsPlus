@@ -837,6 +837,11 @@ namespace EssentialsPlus
 		{
 			await Task.Run(() =>
 			{
+				if (e.TPlayer.preventAllItemPickups)
+				{
+					e.Player.SendErrorMessage("You can't give away items to yourself.");
+					return;
+				}
 				if (e.Parameters.Count > 0 && e.Parameters[0].ToLower() == "all")
 				{
 					bool full = true;
