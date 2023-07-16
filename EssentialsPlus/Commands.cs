@@ -81,7 +81,7 @@ namespace EssentialsPlus
 						string uuid = (account == null ? plrs[0].UUID : account.UUID);
 						string accountName = (account == null ? string.Empty : account.Name);
 						// string name = (plrs.Count == 1 ? plrs[0].Name : string.Empty);
-						// Убрано по просьбе Luke_snake (https://discord.com/channels/874653864647872562/874654345583558657/986613882242076692)
+						// Removed at the request of Luke_Snake
 
 						List<AddBanResult> bans = new List<AddBanResult>();
 						var date = DateTime.UtcNow;
@@ -105,7 +105,7 @@ namespace EssentialsPlus
 							args.Player.SendErrorMessage("We were unable to determine the reason for cancelling the user's ban.");
 						else
 							args.Player.SendInfoMessage("Player {0} is banned by ticket's {1}",
-								plrs.Count == 1 ? plrs[0].Name : account.Name, string.Join(", ", bans.Select(b => b.Ban.TicketNumber)));
+								plrs.Count == 1 ? plrs[0].Name : account.Name, string.Join(", ", bans.Select(b => $"{b.Ban.Identifier}{b.Ban.TicketNumber}")));
 					}
 					break;
 				case "addip":
