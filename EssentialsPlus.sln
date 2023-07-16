@@ -5,7 +5,9 @@ VisualStudioVersion = 17.2.32616.157
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EssentialsPlus", "EssentialsPlus\EssentialsPlus.csproj", "{F07C5E6C-C0F0-4ABD-8BE1-8A0621BF2BDD}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WorldEdit", "..\WorldEdit\WorldEdit\WorldEdit.csproj", "{322EAA8D-A98B-4032-9CF3-5C9EAE66124E}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "References", "References", "{3A506825-63BC-4BB8-A61B-6B198806DAC9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WorldEdit", "WorldEdit\WorldEdit\WorldEdit.csproj", "{64F14781-FF04-486E-AC03-090C0094067A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,13 +19,16 @@ Global
 		{F07C5E6C-C0F0-4ABD-8BE1-8A0621BF2BDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F07C5E6C-C0F0-4ABD-8BE1-8A0621BF2BDD}.Release|Any CPU.ActiveCfg = Release|x86
 		{F07C5E6C-C0F0-4ABD-8BE1-8A0621BF2BDD}.Release|Any CPU.Build.0 = Release|x86
-		{322EAA8D-A98B-4032-9CF3-5C9EAE66124E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{322EAA8D-A98B-4032-9CF3-5C9EAE66124E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{322EAA8D-A98B-4032-9CF3-5C9EAE66124E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{322EAA8D-A98B-4032-9CF3-5C9EAE66124E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{64F14781-FF04-486E-AC03-090C0094067A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64F14781-FF04-486E-AC03-090C0094067A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64F14781-FF04-486E-AC03-090C0094067A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64F14781-FF04-486E-AC03-090C0094067A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{64F14781-FF04-486E-AC03-090C0094067A} = {3A506825-63BC-4BB8-A61B-6B198806DAC9}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3663CA46-0FE8-41ED-8B64-F138FFD6B8A0}
