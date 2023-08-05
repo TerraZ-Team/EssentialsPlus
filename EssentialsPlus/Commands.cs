@@ -960,7 +960,7 @@ namespace EssentialsPlus
 								return;
 							}
 							TSPlayer.All.SendInfoMessage("{0} has been muted until {1}({2}) for {3}.",
-								account.Name, mute.expiration, (mute.expiration - mute.date).ToString(), reason);
+								account.Name, mute.expiration, (mute.expiration - mute.date).ToString(@"d\d\.hh\h\:mm\m\:ss\s"), reason);
 						}
 					}
 					return;
