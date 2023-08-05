@@ -930,7 +930,7 @@ namespace EssentialsPlus
 									return;
                                 }
 								TSPlayer.All.SendInfoMessage("{0} has been muted until {1}({2}) for {3}.",
-									players[0].Name, mute.expiration, (mute.expiration - mute.date).ToString(), reason);
+									players[0].Name, mute.expiration, (mute.expiration - mute.date).ToString(@"d\d\.hh\h\:mm\m\:ss\s"), reason);
 								players[0].GetPlayerInfo().Mutes = EssentialsPlus.Mutes.GetMutes(players[0]).ToList();
 								players[0].mute = true;
 							}
