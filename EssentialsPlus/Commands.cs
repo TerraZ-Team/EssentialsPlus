@@ -1022,7 +1022,10 @@ namespace EssentialsPlus
 							foreach (Mute mute in mutes)
 								success = EssentialsPlus.Mutes.Remove(mute) | success;
 							if (success)
+                            {
 								TSPlayer.All.SendInfoMessage("{0} unmuted {1}.", e.Player.Name, players[0].Name);
+								players[0].mute = false;
+							}
 							else
 								e.Player.SendErrorMessage("Could not unmute.");
 						}
