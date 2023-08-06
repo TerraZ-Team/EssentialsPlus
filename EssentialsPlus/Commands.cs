@@ -105,7 +105,7 @@ namespace EssentialsPlus
 							args.Player.SendErrorMessage("We were unable to determine the reason for cancelling the user's ban.");
 						else
 							args.Player.SendInfoMessage("Player {0} is banned by ticket's {1}",
-								plrs.Count == 1 ? plrs[0].Name : account.Name, string.Join(", ", bans.Select(b => $"{b.Ban.Identifier}{b.Ban.TicketNumber}")));
+								plrs.Count == 1 ? plrs[0].Name : account.Name, string.Join(", ", bans.Select(b => $"{b.Ban.Identifier.Split(':')[0]}:{b.Ban.TicketNumber}")));
 					}
 					break;
 				case "addip":
