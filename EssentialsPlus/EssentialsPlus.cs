@@ -289,7 +289,7 @@ namespace EssentialsPlus
 				return;
 
 			player.GetPlayerInfo().Mutes = mutes.ToList();
-			player.SendErrorMessage($"You have been muted due to \"{mutes.Last().reason}\". Remaining time: {mutes.Last().expiration - DateTime.UtcNow}");
+			player.SendErrorMessage($"You have been muted due to \"{mutes.Last().reason}\". Remaining time: {(mutes.Last().expiration - DateTime.UtcNow).ToString(@"d\d\.hh\h\:mm\m\:ss\s")}");
 			player.mute = true;
 		}
 		private void OnChat(ServerChatEventArgs args)
@@ -307,7 +307,7 @@ namespace EssentialsPlus
                 {
 					if (mutes.Any(i => i.expiration > DateTime.UtcNow))
 					{
-						player.SendErrorMessage($"You have been muted due to \"{mutes.Last().reason}\". Remaining time: {mutes.Last().expiration - DateTime.UtcNow}");
+						player.SendErrorMessage($"You have been muted due to \"{mutes.Last().reason}\". Remaining time: {(mutes.Last().expiration - DateTime.UtcNow).ToString(@"d\d\.hh\h\:mm\m\:ss\s")}");
 						args.Handled = true;
 					}
 					else
