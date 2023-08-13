@@ -159,6 +159,68 @@ namespace EssentialsPlus
 
 						break;
 					}
+				case "addrange":
+                    {
+						if (args.Parameters.Count < 4)
+                        {
+							args.Player.SendErrorMessage("Invalid syntax. Proper syntax: /bt addrange 0.0.0.0 255.255.255.255 <time> [reason]");
+							return;
+                        }
+						
+						byte[] start = new byte[4];
+						string[] array = args.Parameters[1].Split('.');
+						if (array.Length != 4)
+						{
+							args.Player.SendErrorMessage("Length != 4");
+							return;
+						}
+						for (int i = 0; i < array.Length; i++)
+							if (!byte.TryParse(array[i], out start[i]))
+							{
+								args.Player.SendErrorMessage("!byte.TryParse");
+								return;
+							}
+						byte[] end = new byte[4];
+						array = args.Parameters[2].Split('.');
+						if (array.Length != 4)
+						{
+							args.Player.SendErrorMessage("Length != 4");
+							return;
+						}
+						for (int i = 0; i < array.Length; i++)
+							if (!byte.TryParse(array[i], out end[i]))
+							{
+								args.Player.SendErrorMessage("!byte.TryParse");
+								return;
+							}
+
+						var expiration = DateTime.MaxValue;
+						if (TShock.Utils.TryParseTime(args.Parameters[3], out int seconds))
+							expiration = DateTime.UtcNow.AddSeconds((double)seconds);
+
+						string reason = "no reason";
+						if (args.Parameters.Count >= 5)
+							reason = string.Join(" ", args.Parameters.Skip(4));
+
+						for (int i0 = start[0]; i0 <= end[0]; i0++)
+						{
+							for (int i1 = start[1]; i1 <= end[1]; i1++)
+							{
+								for (int i2 = start[2]; i2 <= end[2]; i2++)
+								{
+									for (int i3 = start[3]; i3 <= end[3]; i3++)
+									{
+										TShock.Bans.InsertBan(string.Format("{0}{1}", Identifier.IP, $"{i0}.{i1}.{i2}.{i3}"),
+											reason, args.Player.Account.Name, DateTime.UtcNow, expiration);
+									}
+								}
+							}
+						}
+
+						args.Player.SendSuccessMessage("Alright...");
+
+						break;
+                    }
 				case "info":
 					{
 						if (args.Parameters.Count < 2)
@@ -881,7 +943,7 @@ namespace EssentialsPlus
 			});
 		}
 
-		public static async void Mute(CommandArgs e)
+		public static void Mute(CommandArgs e)
 		{
 			string subCmd = e.Parameters.FirstOrDefault() ?? "help";
 			switch (subCmd.ToLowerInvariant())
@@ -967,9 +1029,9 @@ namespace EssentialsPlus
 
 				#endregion
 
-				#region Delete
+                #region Delete
 
-				case "del":
+                case "del":
 				case "delete":
 				case "archive":
 					{
