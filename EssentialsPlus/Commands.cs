@@ -258,7 +258,7 @@ namespace EssentialsPlus
                     "[c/00FF00:-prefix]     [c/00FF00:-p],   [c/00FF00:p]:  Finds a prefix.\n" +
                     "[c/00FF00:-paint],      [c/00FF00:-pa], [c/00FF00:pa]: Finds a paint.\n" +
                     "[c/00FF00:-buff],      [c/00FF00:-b],   [c/00FF00:b]:  Finds a buff.\n" +
-					"[c/00FF00:-schematic],      [c/00FF00:-s],   [c/00FF00:s]:  Finds a schematic."
+					"[c/00FF00:-schematic],      [c/00FF00:-sc],   [c/00FF00:sc]:  Finds a schematic."
 				);
             }
             else
