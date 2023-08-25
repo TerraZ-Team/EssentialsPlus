@@ -273,7 +273,7 @@ namespace EssentialsPlus
                     "-prefix,  -p,  p:  Finds a prefix.\n" +
                     "-paint,   -pa, pa: Finds a paint.\n" +
                     "-buff,    -b,  b:  Finds a buff.\n"+
-					"-schematic,      -s,   s: Finds a schematic."
+					"-schematic,      -sc,   sc: Finds a schematic."
 				);
             }
         }
