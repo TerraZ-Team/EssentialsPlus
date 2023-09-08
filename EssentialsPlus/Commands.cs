@@ -689,16 +689,29 @@ namespace EssentialsPlus
 		static async void FindSchematicAction(CommandArgs e, string Search, int Page)
         {
 			string exceptedName = e.Parameters[1];
-			
+
+			bool negative = exceptedName.StartsWith("!");
+			if (negative)
+				exceptedName = exceptedName.Substring(1);
+
 			if (exceptedName.Any(i => Path.GetInvalidFileNameChars().Contains(i)))
             {
 				e.Player.SendErrorMessage("You can't use special characters.");
 				return;
             }
 
+			string fileFormat = "schematic-{0}.dat";
+
+			int substring = 10;
+			if (WorldEdit.WorldEdit.Config.StartSchematicNamesWithCreatorUserID && (!e.Player.HasPermission("worldedit.schematic.op") || !negative))
+            {
+				exceptedName = e.Player.Account.ID+"-"+exceptedName;
+				substring = substring + e.Player.Account.ID.ToString().Length + 1;
+            }
+
 			List<string> files = new();
-			await Task.Run(() => files = (from s in Directory.EnumerateFiles(WorldEdit.WorldEdit.WorldEditFolderName, string.Format("schematic-{0}.dat", $"*{exceptedName}*"))
-											select Path.GetFileNameWithoutExtension(s).Substring(10)).ToList());
+			await Task.Run(() => files = (from s in Directory.EnumerateFiles(WorldEdit.WorldEdit.WorldEditFolderName, string.Format(fileFormat, exceptedName))
+				select Path.GetFileNameWithoutExtension(s).Substring(substring)).ToList());
 
 			PaginationTools.SendPage(e.Player, Page, PaginationTools.BuildLinesFromTerms(files),
 							new PaginationTools.Settings
