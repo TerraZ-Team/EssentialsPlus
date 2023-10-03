@@ -965,7 +965,7 @@ namespace EssentialsPlus
 
 				case "add":
 					{
-						var regex = new Regex(@"^(\w+ \w+ )((?:\w+|""[^""]*""))\s*((?:\w+)?)\s*(.*)$");
+						var regex = new Regex(@"^(\w+ \w+ )((?:\S+|""[^""]*""))\s*((?:\w+)?)\s*(.*)$");
 						Match match = regex.Match(e.Message);
 						if (!match.Success)
 						{
@@ -973,10 +973,10 @@ namespace EssentialsPlus
 							return;
 						}
 
-						int seconds = Int32.MaxValue / 500;
+						int seconds = Int32.MaxValue;
 						if (!String.IsNullOrWhiteSpace(match.Groups[3].Value) &&
 							(!TShock.Utils.TryParseTime(match.Groups[3].Value, out seconds) || seconds <= 0 ||
-							 seconds > Int32.MaxValue / 500))
+							 seconds > Int32.MaxValue))
 						{
 							e.Player.SendErrorMessage("Invalid time '{0}'!", match.Groups[3].Value);
 							return;
