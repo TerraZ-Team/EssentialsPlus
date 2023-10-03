@@ -27,29 +27,25 @@ namespace EssentialsPlus
 		{
 			if (args.Parameters.Count == 0)
 			{
-				args.Player.SendErrorMessage("Invalid syntax. Try /bt <info/(add/create)/addip> [args]");
+				args.Player.SendErrorMessage("Invalid syntax. Try /bt <info/(add/create)/addip/addrange> [args]");
 				return;
 			}
 			string cmd = args.Parameters[0];
 			switch (cmd)
 			{
 				default:
-					args.Player.SendErrorMessage("Invalid syntax. Try /bt <info/(add/create)/addip> [args]");
+					args.Player.SendErrorMessage("Invalid syntax. Try /bt <info/(add/create)/addip/addrange> [args]");
 					return;
 
 				case "add":
 				case "create":
 					{
-						if (args.Parameters.Count < 3)
+						if (args.Parameters.Count < 4)
 						{
-							args.Player.SendErrorMessage("Invalid syntax. Gigachad syntax: /bt add <userName> <time> [reason]");
+							args.Player.SendErrorMessage("Invalid syntax. Proper syntax: /bt add <userName> <reason> <time>");
 							return;
 						}
 						string userName = args.Parameters[1];
-
-						string reason = "no reason";
-						if (args.Parameters.Count >= 4)
-							reason = string.Join(" ", args.Parameters.Skip(3));
 
 						UserAccount account = null;
 						var plrs = TSPlayer.FindByNameOrID(userName);
@@ -73,9 +69,16 @@ namespace EssentialsPlus
 								account = plrs[0].Account;
 						}
 
+						string reason = args.Parameters[2];
+
 						var expiration = DateTime.MaxValue;
-						if (TShock.Utils.TryParseTime(args.Parameters[2], out int seconds))
+						if (TShock.Utils.TryParseTime(args.Parameters[3], out int seconds))
 							expiration = DateTime.UtcNow.AddSeconds((double)seconds);
+						else if (args.Parameters[3] != "0")
+                        {
+							args.Player.SendErrorMessage("Failed to get a specific time period.");
+							return;
+                        }
 
 						string ip = (account == null ? plrs[0].IP : Newtonsoft.Json.JsonConvert.DeserializeObject<List<string>>(account.KnownIps).FirstOrDefault());
 						string uuid = (account == null ? plrs[0].UUID : account.UUID);
@@ -110,9 +113,9 @@ namespace EssentialsPlus
 					break;
 				case "addip":
 					{
-						if (args.Parameters.Count < 3)
+						if (args.Parameters.Count < 4)
 						{
-							args.Player.SendErrorMessage("Invalid syntax. Gigachad syntax: /bt addip <ip> <time> [reason]");
+							args.Player.SendErrorMessage("Invalid syntax. Gigachad syntax: /bt addip <ip> <reason> <time>");
 							return;
 						}
 
@@ -129,13 +132,16 @@ namespace EssentialsPlus
 							return;
 						}
 
-						string reason = "no reason";
-						if (args.Parameters.Count >= 4)
-							reason = string.Join(" ", args.Parameters.Skip(3));
+						string reason = args.Parameters[2];
 
 						var expiration = DateTime.MaxValue;
-						if (TShock.Utils.TryParseTime(args.Parameters[2], out int seconds))
+						if (TShock.Utils.TryParseTime(args.Parameters[3], out int seconds))
 							expiration = DateTime.UtcNow.AddSeconds((double)seconds);
+						else if (args.Parameters[3] != "0")
+						{
+							args.Player.SendErrorMessage("Failed to get a specific time period.");
+							return;
+						}
 
 						List<AddBanResult> bans = new List<AddBanResult>();
 						var date = DateTime.UtcNow;
@@ -161,9 +167,9 @@ namespace EssentialsPlus
 					}
 				case "addrange":
                     {
-						if (args.Parameters.Count < 4)
+						if (args.Parameters.Count < 5)
                         {
-							args.Player.SendErrorMessage("Invalid syntax. Proper syntax: /bt addrange 0.0.0.0 255.255.255.255 <time> [reason]");
+							args.Player.SendErrorMessage("Invalid syntax. Proper syntax: /bt addrange 0.0.0.0 255.255.255.255 <reason> <time>");
 							return;
                         }
 						
@@ -195,12 +201,15 @@ namespace EssentialsPlus
 							}
 
 						var expiration = DateTime.MaxValue;
-						if (TShock.Utils.TryParseTime(args.Parameters[3], out int seconds))
+						if (TShock.Utils.TryParseTime(args.Parameters[4], out int seconds))
 							expiration = DateTime.UtcNow.AddSeconds((double)seconds);
+						else if (args.Parameters[3] != "0")
+						{
+							args.Player.SendErrorMessage("Failed to get a specific time period.");
+							return;
+						}
 
-						string reason = "no reason";
-						if (args.Parameters.Count >= 5)
-							reason = string.Join(" ", args.Parameters.Skip(4));
+						string reason = args.Parameters[3];
 
 						for (int i0 = start[0]; i0 <= end[0]; i0++)
 						{
