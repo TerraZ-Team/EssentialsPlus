@@ -302,7 +302,11 @@ namespace EssentialsPlus
                                 : string.Join(" ", e.Parameters.Skip(1)));
             if (Page < 1) { Page = 1; }
 
-            switch (e.Parameters[0].ToLower())
+			bool negative = e.Parameters[0].StartsWith("!");
+			if (negative)
+				e.Parameters[0] = e.Parameters[0].Substring(1);
+
+			switch (e.Parameters[0].ToLower())
             {
                 #region Command
 
@@ -686,7 +690,7 @@ namespace EssentialsPlus
 						if (TerrariaApi.Server.ServerApi.Plugins.Count(p => p.Plugin.Name == "WorldEdit") == 0)
 							e.Player.SendErrorMessage("The server does not have the WorldEdit plugin");
 						else
-							FindSchematicAction(e, Search, Page);
+							FindSchematicAction(e, Search, Page, negative);
 						return;
                     }
 
@@ -695,13 +699,9 @@ namespace EssentialsPlus
 				default: { FindHelp(e.Player); return; }
             }
         }
-		static async void FindSchematicAction(CommandArgs e, string Search, int Page)
+		static async void FindSchematicAction(CommandArgs e, string Search, int Page, bool negative)
         {
 			string exceptedName = e.Parameters[1];
-
-			bool negative = exceptedName.StartsWith("!");
-			if (negative)
-				exceptedName = exceptedName.Substring(1);
 
 			if (exceptedName.Any(i => Path.GetInvalidFileNameChars().Contains(i)))
             {
