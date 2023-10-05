@@ -703,13 +703,19 @@ namespace EssentialsPlus
         {
 			string exceptedName = e.Parameters[1];
 
-			if (exceptedName.Any(i => Path.GetInvalidFileNameChars().Contains(i)))
+            if (string.IsNullOrEmpty(exceptedName))
+            {
+                e.Player.SendErrorMessage("Schematic name can't be empty.");
+                return;
+            }
+
+            if (exceptedName.Any(i => Path.GetInvalidFileNameChars().Contains(i)))
             {
 				e.Player.SendErrorMessage("You can't use special characters.");
 				return;
             }
 
-			string fileFormat = "schematic-{0}.dat";
+            string fileFormat = "schematic-*{0}*.dat";
 
 			int substring = 10;
 			if (WorldEdit.WorldEdit.Config.StartSchematicNamesWithCreatorUserID && (!e.Player.HasPermission("worldedit.schematic.op") || !negative))
