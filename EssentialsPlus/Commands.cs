@@ -980,7 +980,7 @@ namespace EssentialsPlus
 
 				case "add":
 					{
-						var regex = new Regex(@"^(\w+ \w+ )((?:\S+|""[^""]*""))\s*((?:\w+)?)\s*(.*)$");
+						var regex = new Regex(@"^(\w+ \w+ )((?:""[^""]*""|\S+))\s*((?:\w+)?)\s*(.*)$");
 						Match match = regex.Match(e.Message);
 						if (!match.Success)
 						{
