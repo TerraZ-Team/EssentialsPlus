@@ -80,7 +80,7 @@ namespace EssentialsPlus
 							return;
                         }
 
-						string ip = (account == null ? plrs[0].IP : Newtonsoft.Json.JsonConvert.DeserializeObject<List<string>>(account.KnownIps).FirstOrDefault());
+						string ip = (account == null ? plrs[0].IP : Newtonsoft.Json.JsonConvert.DeserializeObject<List<string>>(account.KnownIps ?? string.Empty).FirstOrDefault());
 						string uuid = (account == null ? plrs[0].UUID : account.UUID);
 						string accountName = (account == null ? string.Empty : account.Name);
 						// string name = (plrs.Count == 1 ? plrs[0].Name : string.Empty);
