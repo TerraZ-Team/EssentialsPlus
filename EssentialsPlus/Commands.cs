@@ -720,8 +720,8 @@ namespace EssentialsPlus
 			int substring = 10;
 			if (WorldEdit.WorldEdit.Config.StartSchematicNamesWithCreatorUserID && (!e.Player.HasPermission("worldedit.schematic.op") || !negative))
             {
-				exceptedName = e.Player.Account.ID+"-"+exceptedName;
-				substring = substring + e.Player.Account.ID.ToString().Length + 1;
+				exceptedName = e.Player.Account.ID+"-*"+exceptedName;
+				substring = substring + e.Player.Account.ID.ToString().Length + 2;
             }
 
 			List<string> files = new();
