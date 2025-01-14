@@ -211,22 +211,27 @@ namespace EssentialsPlus
 
 						string reason = args.Parameters[3];
 
-						for (int i0 = start[0]; i0 <= end[0]; i0++)
-						{
-							for (int i1 = start[1]; i1 <= end[1]; i1++)
-							{
-								for (int i2 = start[2]; i2 <= end[2]; i2++)
-								{
-									for (int i3 = start[3]; i3 <= end[3]; i3++)
-									{
-										TShock.Bans.InsertBan(string.Format("{0}{1}", Identifier.IP, $"{i0}.{i1}.{i2}.{i3}"),
-											reason, args.Player.Account.Name, DateTime.UtcNow, expiration);
-									}
-								}
-							}
-						}
-
-						args.Player.SendSuccessMessage("Alright...");
+                        Task.Run(() =>
+                        {
+                            int firstTicket = TShock.Bans.Bans.Keys.Max() + 1;
+							args.Player.SendInfoMessage($"Started banning IP range from {args.Parameters[1]} to {args.Parameters[2]}.");
+                            for (int i0 = start[0]; i0 <= end[0]; i0++)
+                            {
+                                for (int i1 = start[1]; i1 <= end[1]; i1++)
+                                {
+                                    for (int i2 = start[2]; i2 <= end[2]; i2++)
+                                    {
+                                        for (int i3 = start[3]; i3 <= end[3]; i3++)
+                                        {
+                                            TShock.Bans.InsertBan(string.Format("{0}{1}", Identifier.IP, $"{i0}.{i1}.{i2}.{i3}"),
+                                                reason, args.Player.Account.Name, DateTime.UtcNow, expiration);
+                                        }
+                                    }
+                                }
+                            }
+                            int lastTicket = TShock.Bans.Bans.Keys.Max();
+                            args.Player.SendSuccessMessage($"Successfully banned IP range from {args.Parameters[1]} (BanTicket = {firstTicket}) to {args.Parameters[2]} (BanTicket = {lastTicket}).");
+                        });
 
 						break;
                     }
