@@ -175,14 +175,15 @@ namespace EssentialsPlus.Db
                 }
             }
 		}
-        public IEnumerable<(int ID, int Account, string Reason, string Expiration)> GetActiveMutes()
+        public IEnumerable<(int ID, int Account, string Ip, string Reason, string Expiration)> GetActiveMutes()
         {
-            using (QueryResult result = db.QueryReader("SELECT ID, Account, Reason, Expiration FROM Mutes ORDER BY ID DESC"))
+            using (QueryResult result = db.QueryReader("SELECT ID, Account, IP, Reason, Expiration FROM Mutes ORDER BY ID DESC"))
             {
                 while (result.Read())
                 {
                     int id = result.Get<int>("ID");
                     int account = result.Get<int>("Account");
+					string ip = result.Get<string>("IP");
                     string reason = result.Get<string>("Reason");
                     string expiration = result.Get<string>("Expiration");
 
@@ -192,7 +193,7 @@ namespace EssentialsPlus.Db
 
                     if (isActive)
                     {
-                        yield return (id, account, reason, expiration);//убрать айди, сделать возврат полного ника, по возможности сократить время окончания до секунд/минут
+                        yield return (id, account, ip, reason, expiration);//убрать айди, сделать возврат полного ника, по возможности сократить время окончания до секунд/минут
                     }
                 }
             }
