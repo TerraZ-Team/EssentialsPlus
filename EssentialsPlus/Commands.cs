@@ -6,15 +6,15 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Data;
 using EssentialsPlus.Db;
 using EssentialsPlus.Extensions;
+using static EssentialsPlus.Db.MuteManager;
 using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.ID;
-using Terraria.Localization;
 using TShockAPI;
 using TShockAPI.DB;
-using TShockAPI.Localization;
 using Terraria.GameContent.NetModules;
 using Terraria.Net;
 using System.IO;
@@ -23,6 +23,7 @@ namespace EssentialsPlus
 {
 	public static class Commands
     {
+		//добавить RTP
 		public static void BanTools(CommandArgs args)
 		{
 			if (args.Parameters.Count == 0)
@@ -110,6 +111,10 @@ namespace EssentialsPlus
 							args.Player.SendInfoMessage("Player {0} is banned by ticket's {1}",
 								plrs.Count == 1 ? plrs[0].Name : account.Name, string.Join(", ", bans.Select(b => $"{b.Ban.Identifier.Split(':')[0]}:{b.Ban.TicketNumber}")));
 					}
+					break;
+				case "addname":
+					//сделать добавление бана только по нику
+					args.Player.SendInfoMessage("Not implemented yet.");
 					break;
 				case "addip":
 					{
@@ -734,16 +739,16 @@ namespace EssentialsPlus
 				select Path.GetFileNameWithoutExtension(s).Substring(substring)).ToList());
 
 			PaginationTools.SendPage(e.Player, Page, PaginationTools.BuildLinesFromTerms(files),
-							new PaginationTools.Settings
-							{
-								HeaderFormat = "Found Schematics ({0}/{1}):",
-								FooterFormat = string.Format
-								(
-									"Type /find {0} {1} {{0}} for more",
-									e.Parameters[0], Search
-								),
-								NothingToDisplayString = "No schematic were found."
-							});
+				new PaginationTools.Settings
+				{
+					HeaderFormat = "Found Schematics ({0}/{1}):",
+					FooterFormat = string.Format
+					(
+						"Type /find {0} {1} {{0}} for more",
+						e.Parameters[0], Search
+					),
+					NothingToDisplayString = "No schematic were found."
+				});
 		}
 
 		public static void FreezeTime(CommandArgs e)
@@ -1130,12 +1135,34 @@ namespace EssentialsPlus
 
 				#endregion
 
-				#region Help
+				#region List
 
-				default:
+				case "list":
+				case "l":
+					if (!PaginationTools.TryParsePageNumber(e.Parameters, 1, e.Player, out int pageNumber))
+					{
+						e.Player.SendErrorMessage("Invalid syntax.");
+					}
+                    var muteDb = EssentialsPlus.Mutes.GetActiveMutes();
+                    PaginationTools.SendPage(e.Player, pageNumber, muteDb.ToList(),
+                        new PaginationTools.Settings
+                        {
+                            HeaderFormat = $"Mutes ({{0}}/{{1}}):",
+                            FooterFormat = $"Type /mute list {{0}} for more.",
+                            NothingToDisplayString = "There are currently no active mutes."
+                        });
+
+                    return;
+
+                #endregion
+
+                #region Help
+
+                default:
 					e.Player.SendSuccessMessage("Mute Sub-Commands:");
 					e.Player.SendInfoMessage("add <name> [time] [reason] - Mutes a player or account.");
 					e.Player.SendInfoMessage("del <name> - Unmutes a player or account.");
+					e.Player.SendInfoMessage("list <page> - Shows active account/player mutes.");
 					return;
 
 				#endregion

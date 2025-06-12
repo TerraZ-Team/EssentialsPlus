@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Threading.Tasks;
 using EssentialsPlus.Db;
 using EssentialsPlus.Extensions;
 using Microsoft.Data.Sqlite;
@@ -14,6 +12,7 @@ using TerrariaApi.Server;
 using TShockAPI;
 using TShockAPI.Hooks;
 using TShockAPI.Configuration;
+using TShockAPI.DB;
 
 namespace EssentialsPlus
 {
@@ -24,11 +23,10 @@ namespace EssentialsPlus
 		public static IDbConnection Db { get; private set; }
 		public static HomeManager Homes { get; private set; }
 		public static MuteManager Mutes { get; private set; }
-
-		public override string Author => "WhiteX et al. & AnzhelikaO & Zoom L1";
+        public override string Author => "WhiteX et al. & AnzhelikaO & Zoom L1 & Syao";
 		public override string Description => "Essentials, but better";
 		public override string Name => "EssentialsPlus";
-		public override Version Version => new(1, 4, 0, 2);
+		public override Version Version => new(1, 4, 1, 0);
 
 		public EssentialsPlus(Main game) : base(game) { Order = 999999; }
 
@@ -264,9 +262,17 @@ namespace EssentialsPlus
 				AllowServer = false,
 				HelpText = "Teleports you up through a layer of blocks."
 			});
-
-			Add(new Command(TShockAPI.Permissions.ban, Commands.BanTools, "bantools", "bantool", "bt"));
-
+			Add(new Command(TShockAPI.Permissions.ban, Commands.BanTools, "bantools", "bantool", "bt")
+			{
+				AllowServer = true,
+				HelpText = "\"/ban\" but with more things in it."
+			});
+			//Add(new Command(Permissions.RandomTeleportCommand, Commands,RandomTeleportCommand, "rtp")
+			//{
+			//	  AllowServer = false,
+			//	  HelpText = "Teleports at random location on the map."
+			//"" + ""
+			//
 			#endregion
 		}
 
