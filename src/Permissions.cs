@@ -5,12 +5,11 @@
 		public static readonly string Find = "essentials.find";
 		public static readonly string FreezeTime = "essentials.freezetime";
 		public static readonly string HomeDelete = "essentials.home.delete";
-		public static readonly string HomeSet = "essentials.home.delete";
+		public static readonly string HomeSet = "essentials.home.set";
 		public static readonly string HomeTp = "essentials.home.tp";
 		public static readonly string KickAll = "essentials.kickall";
 		public static readonly string LastCommand = "essentials.lastcommand";
 		public static readonly string More = "essentials.more";
-		public static readonly string Mute = "essentials.mute";
 		public static readonly string PvP = "essentials.pvp";
 		public static readonly string PvPOthers = PvP + ".other";
 		public static readonly string Ruler = "essentials.ruler";

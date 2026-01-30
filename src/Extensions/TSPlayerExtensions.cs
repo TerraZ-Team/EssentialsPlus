@@ -10,6 +10,9 @@ namespace EssentialsPlus.Extensions
 {
 	public static class TSPlayerExtensions
 	{
+		private static readonly MethodInfo ParseParametersMethod =
+			typeof(TShockAPI.Commands).GetMethod("ParseParameters", BindingFlags.Static | BindingFlags.NonPublic);
+
 		public static PlayerInfo GetPlayerInfo(this TSPlayer tsplayer)
 		{
 			if (!tsplayer.ContainsData(PlayerInfo.KEY))
@@ -25,17 +28,31 @@ namespace EssentialsPlus.Extensions
         /// <returns>True or false.</returns>
         public static bool ExecuteCommand(this TSPlayer player, string text, bool Force = false)
         {
+			if (string.IsNullOrWhiteSpace(text) || text.Length < 2)
+			{
+				player.SendErrorMessage("Invalid command.");
+				return false;
+			}
+
+			if (ParseParametersMethod == null)
+			{
+				TShock.Log.Error("Failed to locate TShockAPI.Commands.ParseParameters.");
+				player.SendErrorMessage("Command failed, check logs for more details.");
+				return false;
+			}
+
             string cmdText = text.Remove(0, 1);
             string cmdPrefix = text[0].ToString();
             bool silent = (cmdPrefix == TShock.Config.Settings.CommandSilentSpecifier);
 
-            MethodInfo methodInfo = typeof(TShockAPI.Commands).GetMethod
-            (
-                "ParseParameters",
-                (BindingFlags.Static | BindingFlags.NonPublic)
-            );
-            List<string> args = (List<string>)methodInfo
+            List<string> args = (List<string>)ParseParametersMethod
                                     .Invoke(null, new object[] { cmdText });
+
+			if (args == null || args.Count == 0)
+			{
+				player.SendErrorMessage("Invalid command.");
+				return false;
+			}
 
             string cmdName = args[0].ToLower();
             args.RemoveAt(0);

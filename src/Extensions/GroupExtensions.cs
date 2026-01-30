@@ -1,30 +1,44 @@
-﻿using System;
-using System.Text.RegularExpressions;
-using Group = TShockAPI.Group;
+using System;
+using System.Collections.Generic;
+using TShockAPI;
 
 namespace EssentialsPlus.Extensions
 {
-	public static class GroupExtensions
-	{
-		public static int GetDynamicPermission(this Group group, string root)
-		{
-			if (group.HasPermission(root + ".*"))
-			{
-				return Int32.MaxValue;
-			}
+    public static class GroupExtensions
+    {
+        public static int GetDynamicPermission(this Group group, string permission)
+        {
+            if (group == null || string.IsNullOrWhiteSpace(permission))
+            {
+                return 0;
+            }
 
-			int max = 0;
-			var regex = new Regex("^" + root.Replace(".", @"\.") + @"\.(\d+)$");
-			foreach (string permission in group.TotalPermissions)
-			{
-				Match match = regex.Match(permission);
-				if (match.Success && match.Value == permission)
-				{
-					max = Math.Max(max, Convert.ToInt32(match.Groups[1].Value));
-				}
-			}
+            int best = group.HasPermission(permission) ? int.MaxValue : 0;
 
-			return max == 0 && group.HasPermission(root) ? 1 : max;
-		}
-	}
+            IEnumerable<string> permissions = group.TotalPermissions;
+            if (permissions == null)
+            {
+                string permissionsString = group.Permissions ?? string.Empty;
+                permissions = permissionsString.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            }
+            string prefix = permission + ".";
+
+            foreach (string entry in permissions)
+            {
+                string trimmed = entry.Trim();
+                if (trimmed.Length == 0 || !trimmed.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                string suffix = trimmed.Substring(prefix.Length);
+                if (int.TryParse(suffix, out int value))
+                {
+                    best = Math.Max(best, value);
+                }
+            }
+
+            return best;
+        }
+    }
 }

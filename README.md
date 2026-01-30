@@ -1,6 +1,6 @@
 # EssentialsPlus #
 
-![](https://img.shields.io/badge/Version-1.4.0.1-blue.svg) ![](https://img.shields.io/badge/API-2.1-green.svg)
+![](https://img.shields.io/badge/Version-2.0.0.0-blue.svg) ![](https://img.shields.io/badge/API-2.1-green.svg)
 
 Essentials+ is a combination of things from Essentials and things from MoreAdminCommands made better. All commands run asynchronously.
 It does not include Sign Commands.
@@ -12,19 +12,11 @@ It does not include Sign Commands.
         -item -> Searches for a specific item based on input, returning matching items and their IDs.
         -tile -> Searches for a specific tile based on input, returning matching tiles and their IDs.
         -wall -> Searches for a specific wall based on input, returning matching walls and their IDs.
-		-schematic -> Searches for all schematic name matches.
     /freezetime -> Freezes and unfreezes time.
-    /delhome <home name> -> Deletes a home specified by <home name>.
-    /sethome <home name> -> Sets a home named <home name>.
-    /myhome <home name> -> Teleports you to your house named <home name>.
     /kickall <flag> <reason> -> Kicks every player for <reason>. Valid flag: -nosave -> kick doesn't save SSC inventory.
     /= -> Repeats your last entered command (not including other iterations of /=).
 	/more -> Maximizes item stack of held item. Subcommands:
 		all -> Maximizes all stackable items in the player's inventory
-    /mute -> Overwrites TShock's /mute. Has subcommands:
-        add <name> <time> -> Adds a mute on user with name <name> for <time>
-        delete <name> -> Removes a mute on user with name <name>
-        help -> Outputs command info
     /pvp [player name] -> Enables/disables your or another player's PvP status.
     /ruler [1|2] -> Measures distance between points 1 and 2.
     /sudo [flag] <player> <command> -> Attempts to make <player> execute <command>. Valid flag: -force -> forces the command to be run, independent of <player>'s permissions. Players with the essentials.sudo.super permission can use /sudo on anyone.
@@ -39,12 +31,9 @@ It does not include Sign Commands.
 
 	essentials.find -> Grants access to the /find command.
 	essentials.freezetime -> Grants access to the /freezetime command.
-	essentials.home.delete -> Grants access to the /delhome and /sethome commands.
-	essentials.home.tp -> Grants access to the /myhome command.
 	essentials.kickall -> Grants access to the /kickall command.
 	essentials.lastcommand -> Grants access to the /= command.
 	essentials.more -> Grants access to the /more command.
-	essentials.mute -> Grants access to the improved /mute command.
 	essentials.pvp -> Grants access to the /pvp command.
 	essentials.pvp.other -> Grants access to the /pvp [player name] command.
 	essentials.ruler -> Grants access to the /ruler command.

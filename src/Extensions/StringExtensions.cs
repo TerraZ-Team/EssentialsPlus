@@ -1,34 +1,25 @@
-﻿using System;
-
 namespace EssentialsPlus.Extensions
 {
-	public static class StringExtensions
-	{
-		/// <summary>
-		/// Performs a case insensitive "Contains"
-		/// </summary>
-		/// <returns>
-		/// true if the substring findText was found in the string, or
-		/// false otherwise, or there was an error.
-		/// </returns>
-		public static bool ContainsInsensitive(this string str, string findText)
-		{
-			if (String.IsNullOrEmpty(str) || String.IsNullOrEmpty(findText))
-			{
-				return false;
-			}
-			return str.IndexOf(findText, StringComparison.OrdinalIgnoreCase) >= 0;
-		}
-
-        public static string GetIndex(int Index)
+    public static class StringExtensions
+    {
+        public static string GetIndex(int number)
         {
-            switch (Index)
+            int absNumber = number < 0 ? -number : number;
+            int lastTwo = absNumber % 100;
+            int last = absNumber % 10;
+
+            if (lastTwo >= 11 && lastTwo <= 13)
             {
-                case 1: return "1st";
-                case 2: return "2nd";
-                case 3: return "3rd";
-                default: return (Index + "th");
+                return number + "th";
             }
+
+            return last switch
+            {
+                1 => number + "st",
+                2 => number + "nd",
+                3 => number + "rd",
+                _ => number + "th",
+            };
         }
-	}
+    }
 }

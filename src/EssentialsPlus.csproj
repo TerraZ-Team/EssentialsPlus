@@ -3,18 +3,10 @@
     <TargetFramework>net6.0</TargetFramework>
     <OutputType>Library</OutputType>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Remove="Ref\**" />
-    <EmbeddedResource Remove="Ref\**" />
-    <None Remove="Ref\**" />
-  </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="TShock" Version="5.1.3" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\WorldEdit\WorldEdit\WorldEdit.csproj" />
+    <PackageReference Include="TShock" Version="5.2.4" />
   </ItemGroup>
 </Project>
